@@ -20,7 +20,6 @@ This camera was built to glance at a room now and then, not to watch people. Its
 - **Nothing is recorded.** There is no SD card in use and no video or photo storage. The only thing kept on the device is a small event log (when the view was opened, battery voltage, Wi-Fi status), and anyone at home can read it on the dashboard.
 - **No sound.** The board's microphone is not used by the firmware at all.
 - **Nothing leaves the house.** No cloud, no account, no app, no internet access needed. The page only opens from inside the home Wi-Fi.
-- **The picture is blurred by default.** Every time the page opens, the live view is shown through a privacy blur, in full screen too. Seeing it sharp takes a deliberate click on the "Blur on" button (or the B key), and it's blurred again the next time the page opens. Photos saved from the page follow the same setting. (The blur is applied by the page; the optional Telegram snapshot tool asks the camera directly and gets the normal picture.)
 - **The camera is off almost all the time.** It only switches on while someone has the page open, and the live view closes itself after 3 minutes. Each view is logged with its time and length.
 - **The battery makes constant watching impossible.** Idle, the camera draws about 2–4 mA, which is how it lasts for months. While it streams it draws about 30–40 times more. Watching it continuously would empty the 10,000 mAh battery in about three to four days, so it is physically built for a minute here and there, not for surveillance.
 - **Open source.** Every line of the firmware is in this repository, so anyone can check that it does exactly this and nothing more.
@@ -166,8 +165,7 @@ docs/            DEVELOPMENT.md (measurements, bugs, lessons) and images
 **פרטיות, וזו המטרה מההתחלה:** המצלמה נבנתה כדי להציץ לחדר מדי פעם, לא כדי לעקוב אחרי אנשים.
 
 - 🚫 **שום דבר לא מוקלט.** אין שמירה של וידאו או תמונות. במכשיר נשמר רק יומן קטן: מתי פתחו את הצפייה, מתח הסוללה ומצב ה-Wi-Fi. כל מי שבבית יכול לראות אותו בדף.
-- 🔇 **אין קול.** המיקרופון שעל הלוח לא בשימוש בכלל.
-- 🌫️ **התמונה מטושטשת כברירת מחדל.** בכל פעם שפותחים את הדף, התמונה מוצגת מטושטשת, גם במסך מלא. כדי לראות חד צריך ללחוץ בכוונה על הכפתור "Blur on", ובפעם הבאה שהדף נפתח היא שוב מטושטשת. (הטשטוש נעשה בדף. כלי הטלגרם האופציונלי מקבל מהמצלמה את התמונה הרגילה.)
+- 🔇 **אין קול.** המיקרופון שעל הלוח לא בשימוש בכלל ואף נתלש ממקומו מהלוח בזמן הפיתוח.
 - 💤 **המצלמה כבויה כמעט כל הזמן.** היא נדלקת רק כשמישהו פותח את הדף, ונסגרת לבד אחרי 3 דקות. כל צפייה נרשמת ביומן עם השעה והמשך.
 - 🔋 **הסוללה לא מאפשרת מעקב.** במנוחה המצלמה צורכת מעט מאוד, ולכן מחזיקה חודשים. בזמן צפייה היא צורכת פי 30 עד 40. צפייה רציפה הייתה מרוקנת את הסוללה תוך שלושה-ארבעה ימים.
 - 🔒 **הכל נשאר בבית.** אין ענן, אין אפליקציה ואין חשבון. הקוד פתוח, וכל אחד יכול לבדוק שהוא עושה רק את זה.

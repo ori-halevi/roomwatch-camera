@@ -154,8 +154,8 @@ kbd{font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:4px;bor
 .stage:fullscreen img{filter:none!important}
 /* Privacy blur: on by default on every page load, also in full screen. Turned off
    only with the "Privacy blur" button (B). */
-.stage.blurred img{filter:blur(12px) saturate(.85)!important;transition:filter .4s ease}
-.stage.blurred:fullscreen img{filter:blur(28px) saturate(.85)!important}
+.stage.blurred img{filter:blur(8px) saturate(.85)!important;transition:filter .4s ease}
+.stage.blurred:fullscreen img{filter:blur(18px) saturate(.85)!important}
 .fs-exit{position:absolute;z-index:5;top:14px;right:14px;display:none;height:34px;padding:0 12px;border-radius:8px;cursor:pointer;
   background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.25);font:13px var(--sans);opacity:0;transition:opacity .2s}
 .stage:fullscreen .fs-exit{display:inline-flex;align-items:center;gap:6px}
@@ -612,7 +612,7 @@ function savePhoto() {
   x.translate(c.width / 2, c.height / 2);
   x.rotate(orient.r * Math.PI / 180);
   x.scale(orient.m ? -1 : 1, 1);
-  if (blurred) x.filter = "blur(10px)";  // a saved photo is as blurred as the screen
+  if (blurred) x.filter = "blur(7px)";  // a saved photo is as blurred as the screen
   x.drawImage(img, -iw / 2, -ih / 2, iw, ih);
   x.filter = "none";
   x.restore();
