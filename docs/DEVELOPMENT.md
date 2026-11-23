@@ -120,6 +120,10 @@ The router de-authenticates the camera (reason 7) exactly 62/92/122 minutes afte
 - Orientation (rotate/mirror, EXIF values 1–8) is stored on the device and written into `/capture` JPEGs as EXIF, so snapshots sent elsewhere (e.g. Telegram) come out upright too.
 - The XIAO Sense's microphone can sits under the plug of long-flex camera modules. With the 75 mm OV2640 module the plug can't seat flat until the can's lid is removed.
 
+### The power switch failed
+
+After about a month the camera vanished from the network twice. The history showed an hourly reading, then nothing at all: no Wi-Fi drop, no reboot record, and switching it off and on produced no boot record either, so the board had no power (a crash or a hang would have rebooted and logged it). It only came back on a USB cable. Measured: 4.02 V at the charger's B+/B−, 4.00 V at OUT+/OUT−, 0 V at the XIAO's BAT pads. Joining the three wires at the slide switch (OUT+, the wire to BAT+, and the divider) brought it straight back. The tiny slide switch had lost contact inside. The fix was to bypass it. Lesson: a power path through a cheap micro slide switch is a single point of failure; a power loss leaves no trace in the device's own log, so measure along the path from the battery forward.
+
 ## Charging and the battery gauge
 
 - These TP4056 USB-C clones have **no CC resistors**, so USB-C PD chargers and C-to-C cables don't power them. A plain 5 V USB-A charger with an A-to-C cable works.

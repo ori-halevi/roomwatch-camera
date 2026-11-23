@@ -1,6 +1,6 @@
 # RoomWatch: a battery Wi-Fi camera disguised as a motion sensor
 
-A small, private camera for a room with no power outlet. It runs on a 10,000 mAh battery for months, sits on the wall looking like an ordinary PIR motion detector, and shows a live picture in any browser on the home network the moment you open the page. No cloud, no app, no account, no recording.
+A small, private camera for a room with no power outlet. It runs on a 10,000 mAh battery for months, sits on the wall looking like an ordinary PIR motion detector, and shows a live picture in any browser on the home network with one click. No cloud, no app, no account, no recording.
 
 Built around a Seeed **XIAO ESP32S3 Sense** with a 120° OV2640 camera, ESP-IDF firmware that spends ~86% of its time in light sleep, and a 3D-printed enclosure designed in OpenSCAD.
 
@@ -20,13 +20,15 @@ This camera was built to glance at a room now and then, not to watch people. Its
 - **Nothing is recorded.** There is no SD card in use and no video or photo storage. The only thing kept on the device is a small event log (when the view was opened, battery voltage, Wi-Fi status), and anyone at home can read it on the dashboard.
 - **No sound.** The board's microphone is not used by the firmware at all.
 - **Nothing leaves the house.** No cloud, no account, no app, no internet access needed. The page only opens from inside the home Wi-Fi.
-- **The camera is off almost all the time.** It only switches on while someone has the page open, and the live view closes itself after 3 minutes. Each view is logged with its time and length.
+- **A light shows when someone is watching.** Whenever the camera is on (a live view or a snapshot), a light inside the case glows. It is tied to the camera in the firmware, so the camera can't be on without it, and its brightness can be adjusted but never set to zero.
+- **The page shows the cost of watching.** While the live view is open, an animated battery next to it keeps draining from green to red.
+- **The camera is off almost all the time.** Opening the page doesn't turn it on: it switches on only when someone clicks to watch, and the live view closes itself after 3 minutes. Each view is logged with its time and length.
 - **The battery makes constant watching impossible.** Idle, the camera draws about 2–4 mA, which is how it lasts for months. While it streams it draws about 30–40 times more. Watching it continuously would empty the 10,000 mAh battery in about three to four days, so it is physically built for a minute here and there, not for surveillance.
 - **Open source.** Every line of the firmware is in this repository, so anyone can check that it does exactly this and nothing more.
 
 ## Features
 
-- **Instant live view.** The camera stays connected to Wi-Fi in light sleep, so opening the page shows a picture right away (MJPEG, VGA, ~24 fps). The stream stops by itself after 3 minutes, so a forgotten tab can't drain the battery.
+- **Instant live view.** The camera stays connected to Wi-Fi in light sleep, so one click on the page shows a picture right away (MJPEG, VGA, ~24 fps). The stream stops by itself after 3 minutes, so a forgotten tab can't drain the battery.
 - **Months per charge.** Idle draw is a few mA (see the [measurements](docs/DEVELOPMENT.md#power-measurements-and-what-moved-the-needle)). It charges over USB-C from the bottom of the case.
 - **Local only.** Plain HTTP on your LAN. Nothing leaves the house, and nothing is recorded.
 - **Dashboard** in the firmware: battery voltage and %, estimated time left, time asleep, Wi-Fi drops, chip temperature, and an event log (views, snapshots, reboots, charges, hourly battery readings) kept in flash, so it survives a flat battery.
@@ -160,13 +162,15 @@ docs/            DEVELOPMENT.md (measurements, bugs, lessons) and images
 
 ## 🇮🇱 עברית
 
-**ה-RoomWatch** היא מצלמת Wi-Fi קטנה שעובדת על סוללה, לחדר שאין בו שקע. היא נראית כמו גלאי תנועה רגיל על הקיר, ומחזיקה חודשים על סוללה של 10,000mAh. פותחים את הדף בדפדפן בבית ותוך רגע רואים תמונה חיה.
+**ה-RoomWatch** היא מצלמת Wi-Fi קטנה שעובדת על סוללה, לחדר שאין בו שקע. היא נראית כמו גלאי תנועה רגיל על הקיר, ומחזיקה חודשים על סוללה של 10,000mAh. פותחים את הדף בדפדפן בבית, ובלחיצה אחת רואים תמונה חיה.
 
 **פרטיות, וזו המטרה מההתחלה:** המצלמה נבנתה כדי להציץ לחדר מדי פעם, לא כדי לעקוב אחרי אנשים.
 
 - 🚫 **שום דבר לא מוקלט.** אין שמירה של וידאו או תמונות. במכשיר נשמר רק יומן קטן: מתי פתחו את הצפייה, מתח הסוללה ומצב ה-Wi-Fi. כל מי שבבית יכול לראות אותו בדף.
 - 🔇 **אין קול.** המיקרופון שעל הלוח לא בשימוש בכלל ואף נתלש ממקומו מהלוח בזמן הפיתוח.
-- 💤 **המצלמה כבויה כמעט כל הזמן.** היא נדלקת רק כשמישהו פותח את הדף, ונסגרת לבד אחרי 3 דקות. כל צפייה נרשמת ביומן עם השעה והמשך.
+- 💡 **כשמישהו צופה, נדלק אור.** בכל פעם שהמצלמה דלוקה, בצפייה או בצילום תמונה, נדלקת נורה בתוך הקופסה. הנורה קשורה למצלמה בקוד, כך שהמצלמה לא יכולה לפעול בלי שהיא דולקת, ואי אפשר לכבות אותה.
+- 🪫 **רואים כמה הצפייה עולה.** בזמן צפייה מופיעה בדף סוללה מונפשת שמתרוקנת מירוק לאדום.
+- 💤 **המצלמה כבויה כמעט כל הזמן.** פתיחת הדף לא מדליקה אותה. היא נדלקת רק כשמישהו לוחץ כדי לצפות, ונסגרת לבד אחרי 3 דקות. כל צפייה נרשמת ביומן עם השעה והמשך.
 - 🔋 **הסוללה לא מאפשרת מעקב.** במנוחה המצלמה צורכת מעט מאוד, ולכן מחזיקה חודשים. בזמן צפייה היא צורכת פי 30 עד 40. צפייה רציפה הייתה מרוקנת את הסוללה תוך שלושה-ארבעה ימים.
 - 🔒 **הכל נשאר בבית.** אין ענן, אין אפליקציה ואין חשבון. הקוד פתוח, וכל אחד יכול לבדוק שהוא עושה רק את זה.
 **ועוד:**

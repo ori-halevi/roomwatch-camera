@@ -77,8 +77,8 @@ static const char *TAG = "camera";
 #define BATTERY_LOG_SECONDS 3600
 #define CHARGE_JUMP_MV      150  // a rise this big between readings means it was charged
 
-#define FW_VERSION "2d.9"
-#define FW_BUILD   31  // bump with FW_VERSION; stored in boot events
+#define FW_VERSION "2d.10"
+#define FW_BUILD   32  // bump with FW_VERSION; stored in boot events
 
 #define STREAM_MAX_SECONDS 180
 #define TEMP_LIMIT_C 75  // a stream stops if the chip gets this hot
@@ -144,6 +144,37 @@ static void set_led(bool on) {
     gpio_set_level(USER_LED_GPIO, on ? 0 : 1);
     if (!on) esp_pm_lock_release(s_led_lock);
     s_led_on = on;
+}
+
+// Viewing light: the user LED glows dimly (PWM) whenever the camera sensor is on,
+// i.e. while someone watches or a snapshot is taken, so people in the room can see
+// it. The brightness is adjustable (/set?vled=1..255, saved) but can't be set to 0.
+#define VIEW_LED_DEFAULT 255  // full: through the white case anything less is hard to see
+static uint8_t s_view_led = VIEW_LED_DEFAULT;
+static bool s_view_light_on;
+
+static void view_light(bool on) {
+    if (on == s_view_light_on) return;
+    if (on) {
+        esp_pm_lock_acquire(s_led_lock);  // PWM needs the clocks running
+        ledc_timer_config_t timer = {
+            .speed_mode = LEDC_LOW_SPEED_MODE, .duty_resolution = LEDC_TIMER_8_BIT,
+            .timer_num = LEDC_TIMER_1, .freq_hz = 2000, .clk_cfg = LEDC_AUTO_CLK};
+        ledc_channel_config_t ch = {
+            .gpio_num = USER_LED_GPIO, .speed_mode = LEDC_LOW_SPEED_MODE,
+            .channel = LEDC_CHANNEL_1, .timer_sel = LEDC_TIMER_1,
+            .duty = s_view_led, .flags.output_invert = 1};  // LED is active low
+        if (ledc_timer_config(&timer) != ESP_OK || ledc_channel_config(&ch) != ESP_OK) {
+            gpio_set_level(USER_LED_GPIO, 0);  // fall back to full brightness
+        }
+    } else {
+        ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 0);
+        gpio_reset_pin(USER_LED_GPIO);
+        gpio_set_direction(USER_LED_GPIO, GPIO_MODE_OUTPUT);
+        gpio_set_level(USER_LED_GPIO, 1);  // off
+        esp_pm_lock_release(s_led_lock);
+    }
+    s_view_light_on = on;
 }
 
 // Ring buffer of recent log output, readable over HTTP at /log.
@@ -296,6 +327,18 @@ static esp_err_t set_handler(httpd_req_t *req) {
         ESP_LOGI(TAG, "Diagnostic LED %s", s_led_enabled ? "on" : "off");
     }
 
+    if (httpd_query_key_value(query, "vled", value, sizeof(value)) == ESP_OK) {
+        int v = atoi(value);
+        s_view_led = v < 1 ? 1 : v > 255 ? 255 : v;  // never 0: the light must show
+        nvs_handle_t nvs;
+        if (nvs_open("cam", NVS_READWRITE, &nvs) == ESP_OK) {
+            nvs_set_u8(nvs, "vled", s_view_led);
+            nvs_commit(nvs);
+            nvs_close(nvs);
+        }
+        ESP_LOGI(TAG, "Viewing light brightness %d/255", s_view_led);
+    }
+
     if (httpd_query_key_value(query, "ps", value, sizeof(value)) == ESP_OK) {
         int ps = atoi(value);
         if (ps < WIFI_PS_NONE || ps > WIFI_PS_MAX_MODEM) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "ps 0-2");
@@ -361,6 +404,7 @@ static bool start_camera(void) {
         return false;
     }
     s_camera_on = true;
+    view_light(true);
 
     sensor_t *s = esp_camera_sensor_get();
     ESP_LOGI(TAG, "Camera ON, sensor PID: 0x%x", s->id.PID);
@@ -398,6 +442,7 @@ static void stop_camera(void) {
     gpio_set_direction(XCLK_GPIO_NUM, GPIO_MODE_OUTPUT);
     gpio_set_level(XCLK_GPIO_NUM, 0);
     s_camera_on = false;
+    view_light(false);
     esp_pm_lock_release(s_camera_lock);
     set_max_freq(IDLE_MAX_FREQ_MHZ);
     ESP_LOGI(TAG, "Camera OFF");
@@ -451,10 +496,10 @@ static esp_err_t status_handler(httpd_req_t *req) {
     snprintf(json, sizeof(json),
              "{\"fw\":\"%s\",\"uptime\":%lld,\"time\":%lld,\"rssi\":%d,\"mv\":%d,"
              "\"sleep\":%.1f,\"disconnects\":%d,\"events\":%lu,\"stream_max\":%d,"
-             "\"reset\":%d,\"orient\":%d,\"temp\":%.1f,\"temp_peak\":%.1f,\"led\":%d}",
+             "\"reset\":%d,\"orient\":%d,\"temp\":%.1f,\"temp_peak\":%.1f,\"led\":%d,\"vled\":%d}",
              FW_VERSION, (long long)(up / 1000000), (long long)time(NULL), rssi, battery_mv(),
              up ? 100.0 * pm_sleep_us() / up : 0.0, s_disconnects,
-             (unsigned long)history_count(), STREAM_MAX_SECONDS, esp_reset_reason(), s_orient, chip_temp(), s_temp_peak, s_led_enabled);
+             (unsigned long)history_count(), STREAM_MAX_SECONDS, esp_reset_reason(), s_orient, chip_temp(), s_temp_peak, s_led_enabled, s_view_led);
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_sendstr(req, json);
 }
@@ -525,6 +570,7 @@ static void load_orient(void) {
     uint8_t v;
     if (nvs_get_u8(nvs, "orient", &v) == ESP_OK && v >= 1 && v <= 8) s_orient = v;
     if (nvs_get_u8(nvs, "led", &v) == ESP_OK) s_led_enabled = v != 0;
+    if (nvs_get_u8(nvs, "vled", &v) == ESP_OK && v > 0) s_view_led = v;
     nvs_close(nvs);
 }
 
