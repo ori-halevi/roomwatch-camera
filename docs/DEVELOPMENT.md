@@ -49,7 +49,7 @@ Usage profile it was designed for: about one minute of viewing every two days. A
 | `/stream` | MJPEG, stops after 180 s. Runs in its own task, so the rest of the server keeps answering. A second viewer gets 503. |
 | `/capture` | One JPEG (503 while someone is streaming) |
 | `/api/status` | JSON: battery mV, RSSI, uptime, sleep share, firmware version, chip temperature, … |
-| `/api/events` | History ring: boots, views, captures, hourly battery readings, Wi-Fi drops, charges, updates |
+| `/api/events` | History ring: boots, views (with the viewing device, battery voltage under load and peak chip temperature), captures, hourly battery voltage + sleep share, hourly RSSI / chip temperature / Wi-Fi drops, Wi-Fi drops and recoveries (time offline), charges, updates. Record layout in `src/history.h`. |
 | `POST /api/charged` | Mark "charged now" (also detected automatically from a +150 mV jump) |
 | `POST /api/orient` | Image rotation / mirror |
 | `POST /update?key=…` | OTA firmware update (key from `secrets.h`) |

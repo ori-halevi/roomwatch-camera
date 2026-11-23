@@ -94,7 +94,14 @@ body[data-theme="hacker"] .card-h h2::before{content:"// ";color:var(--muted)}
 /* ===================== feed ===================== */
 .stage{position:relative;aspect-ratio:4/3;background:#000;overflow:hidden}
 .stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
-body[data-theme="hacker"] .stage img{filter:contrast(1.05) saturate(.9)}
+body[data-theme="hacker"] .stage img{filter:contrast(1.05) saturate(.9);transition:filter .8s ease}
+/* Hacker theme: pointing at the picture fades the effects away, so you can look properly */
+.hud,body[data-theme="hacker"]::after{transition:opacity .8s ease}
+.stage.live img{cursor:pointer}
+.stage:fullscreen img{cursor:default}
+body[data-theme="hacker"] .stage.live:hover img{filter:none}
+body[data-theme="hacker"] .stage.live:hover .hud{opacity:0}
+body[data-theme="hacker"]:has(.stage.live:hover)::after{opacity:0}
 .hud{position:absolute;inset:0;pointer-events:none;z-index:2;font-family:var(--mono);font-size:12px;color:#d9ffe6;
   text-shadow:0 0 3px #000,0 0 2px #000;letter-spacing:.08em}
 .hud::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px),
@@ -145,10 +152,17 @@ kbd{font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:4px;bor
 .stage:fullscreen{aspect-ratio:auto;width:100vw;height:100vh;background:#000}
 .stage:fullscreen .hud,.stage:fullscreen .overlay canvas{display:none}
 .stage:fullscreen img{filter:none!important}
+/* Privacy blur: on by default on every page load, also in full screen. Turned off
+   only with the "Privacy blur" button (B). */
+.stage.blurred img{filter:blur(12px) saturate(.85)!important;transition:filter .4s ease}
+.stage.blurred:fullscreen img{filter:blur(28px) saturate(.85)!important}
 .fs-exit{position:absolute;z-index:5;top:14px;right:14px;display:none;height:34px;padding:0 12px;border-radius:8px;cursor:pointer;
   background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.25);font:13px var(--sans);opacity:0;transition:opacity .2s}
 .stage:fullscreen .fs-exit{display:inline-flex;align-items:center;gap:6px}
 .stage:fullscreen:hover .fs-exit{opacity:1}
+body[data-theme="hacker"] .fs-exit{background:rgba(2,17,8,.8);color:var(--accent);border-color:var(--line-2);border-radius:var(--radius);
+  font:12px var(--mono);text-transform:uppercase;letter-spacing:.08em;box-shadow:var(--glow)}
+body[data-theme="hacker"] .fs-exit:hover{border-color:var(--accent)}
 
 /* ===================== stats ===================== */
 .stats{list-style:none;margin:0;padding:0}
@@ -277,6 +291,9 @@ dialog .df{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;borde
         <button class="btn" id="btnOrient" aria-expanded="false" aria-controls="orientBar" data-tip="Rotate or mirror the picture to match how the camera is mounted (O)">
           <svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M12 8v4l3 2"/></svg>
           <span>Orientation</span><kbd>O</kbd></button>
+        <button class="btn" id="btnBlur" aria-pressed="true" data-tip="Privacy blur: the picture is blurred unless you turn this off. It's back on every time the page opens. (B)">
+          <svg class="i" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18" id="blurSlash"/></svg>
+          <span id="btnBlurT">Blur on</span><kbd>B</kbd></button>
         <span class="spacer"></span>
         <button class="btn" id="btnRefresh" data-tip="Reload the numbers and the activity log (R). Closes the live view first.">
           <svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
@@ -358,10 +375,12 @@ dialog .df{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;borde
     <kbd>Space</kbd><span>Open / close the live view</span>
     <kbd>F</kbd><span>Full screen (plain picture)</span>
     <kbd>O</kbd><span>Show orientation controls</span>
+    <kbd>B</kbd><span>Privacy blur on / off (on every time the page opens)</span>
     <kbd>S</kbd><span>Save a photo</span>
     <kbd>R</kbd><span>Refresh numbers and activity</span>
     <kbd>T</kbd><span>Switch style</span>
     <kbd>Esc</kbd><span>Leave full screen / close dialogs</span>
+    <kbd>Click</kbd><span>On the live picture: close it · double-click: full screen</span>
   </div></div>
   <div class="df"><button class="btn primary" id="keysOk">Got it</button></div>
 </dialog>
@@ -369,7 +388,8 @@ dialog .df{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;borde
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
-const EV = {BOOT:1, VIEW:2, CAPTURE:3, BATTERY:4, WIFI_DOWN:5, CHARGED:6, UPDATE:7};
+const EV = {BOOT:1, VIEW:2, CAPTURE:3, BATTERY:4, WIFI_DOWN:5, CHARGED:6, UPDATE:7, HOURLY:8, WIFI_UP:9, VIEW_LOAD:10};
+const who = a => a ? ` · from .${a}` : "";
 const RESET = {1:"power on",3:"software restart",4:"crash",5:"watchdog",6:"watchdog",7:"watchdog",8:"wake from deep sleep",9:"low voltage (brownout)",11:"USB"};
 // Common 802.11 reason codes, so "Wi-Fi drop" entries explain themselves.
 const WIFI_REASON = {2:"authentication expired",3:"left the network",4:"inactivity",8:"left the network",15:"handshake timeout",
@@ -537,6 +557,7 @@ function setFeedState(s) {
   feed.state = s;
   const live = s === "live";
   $("overlay").classList.toggle("hidden", live);
+  $("stage").classList.toggle("live", live);
   $("spin").classList.toggle("hidden", s !== "connecting");
   $("btnPhoto").disabled = !live;
   $("btnFeedT").textContent = live || s === "connecting" ? "Close feed" : "Open feed";
@@ -591,7 +612,9 @@ function savePhoto() {
   x.translate(c.width / 2, c.height / 2);
   x.rotate(orient.r * Math.PI / 180);
   x.scale(orient.m ? -1 : 1, 1);
+  if (blurred) x.filter = "blur(10px)";  // a saved photo is as blurred as the screen
   x.drawImage(img, -iw / 2, -ih / 2, iw, ih);
+  x.filter = "none";
   x.restore();
   const d = new Date();
   x.font = "14px sans-serif"; x.fillStyle = "rgba(0,0,0,.5)"; x.fillRect(0, c.height - 24, c.width, 24);
@@ -653,7 +676,15 @@ async function toggleFullscreen() {
 }
 $("btnFs").onclick = toggleFullscreen;
 $("fsExit").onclick = toggleFullscreen;
-$("feed").ondblclick = toggleFullscreen;
+// A click on the live picture closes the feed. Wait a moment first, so a double-click
+// (full screen) doesn't close it. In full screen a click does nothing.
+let clickTimer = 0;
+$("feed").onclick = () => {
+  if (document.fullscreenElement || feed.state !== "live") return;
+  clearTimeout(clickTimer);
+  clickTimer = setTimeout(() => closeFeed(), 280);
+};
+$("feed").ondblclick = () => { clearTimeout(clickTimer); toggleFullscreen(); };
 
 // ---------- data ----------
 async function loadData() {
@@ -782,19 +813,25 @@ function describe(e) {
   switch (type) {
     case EV.BOOT: return {ic:"boot", t:"Camera started", d:RESET[a] || "reason " + a, c:(a === 4 || a === 9) ? "alert" : ""};
     case EV.VIEW: return {ic:"view", t:"Live view", d:"watched " + fmtDur(a), c:"view"};
-    case EV.CAPTURE: return {ic:"photo", t:"Snapshot", d:Math.round(b/1024) + " KB", c:"view"};
+    case EV.CAPTURE: return {ic:"photo", t:"Snapshot", d:Math.round(b/1024) + " KB" + who(a), c:"view"};
     case EV.BATTERY: return {ic:"power", t:"Battery reading", d:(a ? (a/1000).toFixed(2) + " V · " : "") + "asleep " + (b/10).toFixed(1) + "% of the hour", c:""};
     case EV.WIFI_DOWN: return {ic:"wifi", t:"Wi-Fi dropped", d:WIFI_REASON[a] || "reason " + a, c:"alert"};
     case EV.CHARGED: return {ic:"charge", t:"Battery charged", d:b ? "logged by hand" : "detected at " + (a/1000).toFixed(2) + " V", c:"good"};
     case EV.UPDATE: return {ic:"update", t:"Firmware updated", d:Math.round(b/1024) + " KB", c:"good"};
+    case EV.HOURLY: {
+      const rssi = a > 32767 ? a - 65536 : a, drops = b >>> 16;
+      return {ic:"wifi", t:"Hourly conditions", d:(rssi ? rssi + " dBm" : "offline") + ` · ${((b & 0xFFFF)/10).toFixed(1)} °C` + (drops ? ` · ${drops} drop${drops > 1 ? "s" : ""}` : ""), c:""};
+    }
+    case EV.WIFI_UP: return {ic:"wifi", t:"Wi-Fi back", d:"offline " + fmtDur(a) + (b > 1 ? ` · ${b} attempts` : ""), c:"good"};
+    case EV.VIEW_LOAD: return {ic:"power", t:"Battery under load", d:((b & 0xFFFF)/1000).toFixed(2) + " V at the end of a view · peak " + ((b >>> 16)/10).toFixed(1) + " °C" + who(a), c:""};
   }
   return {ic:"boot", t:"Unknown entry", d:"type " + type, c:""};
 }
 const FILTERS = {
-  all: e => e[2] !== EV.BATTERY,
+  all: e => e[2] !== EV.BATTERY && e[2] !== EV.HOURLY && e[2] !== EV.VIEW_LOAD,
   views: e => e[2] === EV.VIEW || e[2] === EV.CAPTURE,
-  alerts: e => e[2] === EV.WIFI_DOWN || (e[2] === EV.BOOT && (e[3] === 4 || e[3] === 9)),
-  power: e => e[2] === EV.BATTERY || e[2] === EV.CHARGED
+  alerts: e => e[2] === EV.WIFI_DOWN || e[2] === EV.WIFI_UP || (e[2] === EV.BOOT && (e[3] === 4 || e[3] === 9)),
+  power: e => e[2] === EV.BATTERY || e[2] === EV.CHARGED || e[2] === EV.VIEW_LOAD || e[2] === EV.HOURLY
 };
 function drawLog() {
   const list = events.filter(FILTERS[filter]).slice(-150).reverse();
@@ -830,6 +867,20 @@ $("btnCharged").onclick = async () => {
 $("btnKeys").onclick = () => $("dlgKeys").showModal();
 $("keysOk").onclick = () => $("dlgKeys").close();
 
+// ---------- privacy blur ----------
+// Always starts on (not remembered), so the picture is blurred unless someone
+// deliberately turns it off for this visit.
+let blurred = true;
+function setBlur(on) {
+  blurred = on;
+  $("stage").classList.toggle("blurred", on);
+  $("btnBlur").setAttribute("aria-pressed", on);
+  $("btnBlurT").textContent = on ? "Blur on" : "Blur off";
+  $("blurSlash").style.display = on ? "" : "none";
+}
+$("btnBlur").onclick = () => setBlur(!blurred);
+setBlur(true);
+
 // ---------- keyboard ----------
 document.addEventListener("keydown", e => {
   if (e.ctrlKey || e.metaKey || e.altKey || document.querySelector("dialog[open]") || !$("boot").classList.contains("hidden")) return;
@@ -838,6 +889,7 @@ document.addEventListener("keydown", e => {
   if (k === " " && !e.target.closest("button")) { e.preventDefault(); toggleFeed(); }
   else if (k === "f") toggleFullscreen();
   else if (k === "o") toggleOrientBar();
+  else if (k === "b") setBlur(!blurred);
   else if (k === "s") savePhoto();
   else if (k === "r") refresh();
   else if (k === "t") applyTheme(isHacker() ? "normal" : "hacker");

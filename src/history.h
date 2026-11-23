@@ -9,11 +9,17 @@
 typedef enum {
     EV_BOOT = 1,       // a = reset reason, b = firmware build (unix time)
     EV_VIEW = 2,       // a = seconds watched, b = frames sent
-    EV_CAPTURE = 3,    // b = JPEG bytes
+    EV_CAPTURE = 3,    // a = client (last byte of its IP, 0 = unknown), b = JPEG bytes
     EV_BATTERY = 4,    // a = battery mV (0 = no probe), b = sleep share over the period, per mille
     EV_WIFI_DOWN = 5,  // a = disconnect reason
     EV_CHARGED = 6,    // a = battery mV; b = 1 when marked by hand from the page
     EV_UPDATE = 7,     // b = bytes of the new firmware
+    // Added in 2d.9 for battery and usage analysis (EV_CAPTURE's a = client too):
+    EV_HOURLY = 8,     // a = RSSI dBm as int16 (0 = not connected),
+                       // b = chip temp in 0.1 C | Wi-Fi disconnects in the hour << 16
+    EV_WIFI_UP = 9,    // back online after a drop: a = seconds offline (max 65535), b = connect attempts
+    EV_VIEW_LOAD = 10, // right after EV_VIEW: a = client (last byte of its IP),
+                       // b = battery mV at the end of the view, under load | peak chip temp in 0.1 C << 16
 } event_type_t;
 
 bool history_init(void);

@@ -44,6 +44,7 @@
 #include "esp_http_server.h"
 #include "esp_netif_sntp.h"
 #include "esp_ota_ops.h"
+#include "lwip/sockets.h"
 #include "history.h"
 #include "secrets.h"
 
@@ -76,8 +77,8 @@ static const char *TAG = "camera";
 #define BATTERY_LOG_SECONDS 3600
 #define CHARGE_JUMP_MV      150  // a rise this big between readings means it was charged
 
-#define FW_VERSION "2d.8"
-#define FW_BUILD   30  // bump with FW_VERSION; stored in boot events
+#define FW_VERSION "2d.9"
+#define FW_BUILD   31  // bump with FW_VERSION; stored in boot events
 
 #define STREAM_MAX_SECONDS 180
 #define TEMP_LIMIT_C 75  // a stream stops if the chip gets this hot
@@ -111,6 +112,7 @@ extern const char index_html_end[] asm("_binary_index_html_end");
 static EventGroupHandle_t s_wifi_events;
 static int s_disconnects;
 static int s_retries;  // consecutive failed connects, for backoff
+static int64_t s_offline_since;  // esp_timer time of the last drop, 0 while online
 static esp_timer_handle_t s_reconnect_timer;
 
 static adc_oneshot_unit_handle_t s_adc;
@@ -421,6 +423,21 @@ static float chip_temp(void) {
     return t;
 }
 
+// Last byte of the client's IPv4 address, to tell the viewing devices apart in the
+// history (e.g. the PC, a phone, the Telegram script). 0 if unknown.
+static uint8_t client_id(httpd_req_t *req) {
+    struct sockaddr_storage addr;
+    socklen_t len = sizeof(addr);
+    if (getpeername(httpd_req_to_sockfd(req), (struct sockaddr *)&addr, &len) != 0) return 0;
+    if (addr.ss_family == AF_INET) {
+        return ntohl(((struct sockaddr_in *)&addr)->sin_addr.s_addr) & 0xFF;
+    }
+#if CONFIG_LWIP_IPV6
+    if (addr.ss_family == AF_INET6) return ((struct sockaddr_in6 *)&addr)->sin6_addr.s6_addr[15];
+#endif
+    return 0;
+}
+
 static esp_err_t index_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "text/html; charset=utf-8");
     return httpd_resp_send(req, index_html_start, index_html_end - index_html_start - 1);
@@ -562,7 +579,7 @@ static esp_err_t capture_handler(httpd_req_t *req) {
         if (fb) {
             httpd_resp_set_type(req, "image/jpeg");
             res = send_jpeg(req, fb->buf, fb->len);
-            history_add(EV_CAPTURE, 0, fb->len);
+            history_add(EV_CAPTURE, client_id(req), fb->len);
             esp_camera_fb_return(fb);
         }
     }
@@ -578,6 +595,8 @@ static void stream_task(void *arg) {
     int64_t started = esp_timer_get_time();
     int64_t temp_checked = started;
     unsigned frames = 0;
+    uint8_t client = client_id(req);
+    float temp_peak = 0;
     char part[128];
     while (res == ESP_OK) {
         int64_t now = esp_timer_get_time();
@@ -588,6 +607,7 @@ static void stream_task(void *arg) {
         if (now - temp_checked > 5000000) {
             temp_checked = now;
             float t = chip_temp();
+            if (t > temp_peak) temp_peak = t;
             if (t >= TEMP_LIMIT_C) {
                 ESP_LOGW(TAG, "Stream stopped: chip at %.1f C", t);
                 break;
@@ -610,6 +630,12 @@ static void stream_task(void *arg) {
     unsigned secs = (unsigned)((esp_timer_get_time() - started) / 1000000);
     ESP_LOGI(TAG, "Stream ended: %u frames in %u s", frames, secs);
     history_add(EV_VIEW, secs, frames);
+    // Battery voltage while the camera and radio are still busy: the sag against the
+    // idle readings shows the battery's internal resistance, i.e. its health over time.
+    int load_mv = battery_mv();
+    float t_end = chip_temp();
+    if (t_end > temp_peak) temp_peak = t_end;
+    history_add(EV_VIEW_LOAD, client, (uint32_t)load_mv | (uint32_t)(temp_peak * 10) << 16);
     stop_camera();
     httpd_req_async_handler_complete(req);
     s_streaming = false;
@@ -686,7 +712,10 @@ static void wifi_event_handler(void *arg, esp_event_base_t base, int32_t id, voi
         xEventGroupClearBits(s_wifi_events, WIFI_CONNECTED_BIT);
         wifi_event_sta_disconnected_t *event = (wifi_event_sta_disconnected_t *)data;
         s_disconnects++;
-        if (was_connected) history_add(EV_WIFI_DOWN, event->reason, 0);
+        if (was_connected) {
+            history_add(EV_WIFI_DOWN, event->reason, 0);
+            s_offline_since = esp_timer_get_time();
+        }
 
         // Back off while the router is away (2, 4, 8 ... 60 s) instead of retrying
         // flat out on battery.
@@ -698,6 +727,11 @@ static void wifi_event_handler(void *arg, esp_event_base_t base, int32_t id, voi
     } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)data;
         ESP_LOGI(TAG, "Open in browser: http://" IPSTR "/", IP2STR(&event->ip_info.ip));
+        if (s_offline_since) {
+            int64_t secs = (esp_timer_get_time() - s_offline_since) / 1000000;
+            history_add(EV_WIFI_UP, secs > 65535 ? 65535 : (uint16_t)secs, s_retries);
+            s_offline_since = 0;
+        }
         s_retries = 0;
         xEventGroupSetBits(s_wifi_events, WIFI_CONNECTED_BIT);
     }
@@ -762,6 +796,16 @@ static void log_battery(void) {
     }
     if (mv) s_last_battery_mv = mv;
     history_add(EV_BATTERY, mv, permille);
+
+    // Conditions over the same hour: signal, chip temperature, Wi-Fi drops.
+    static int last_disconnects;
+    wifi_ap_record_t ap;
+    int rssi = esp_wifi_sta_get_ap_info(&ap) == ESP_OK ? ap.rssi : 0;
+    int temp_dc = (int)(chip_temp() * 10);
+    int drops = s_disconnects - last_disconnects;
+    last_disconnects = s_disconnects;
+    history_add(EV_HOURLY, (uint16_t)(int16_t)rssi,
+                (uint32_t)(temp_dc < 0 ? 0 : temp_dc) | (uint32_t)(drops > 65535 ? 65535 : drops) << 16);
 }
 
 static void status_task(void *arg) {
