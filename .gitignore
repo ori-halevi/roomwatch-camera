@@ -1,0 +1,18 @@
+# build output and downloaded components
+.pio
+managed_components
+sdkconfig.*
+!sdkconfig.defaults
+__pycache__/
+
+# editor
+.vscode
+
+# private: Wi-Fi password, OTA key, raw photos, personal notes
+include/secrets.h
+private/
+
+# redundant copy of enclosure/print_package/*.stl
+enclosure/print_package/*.zip
+tools/telegram.env
+tools/local_settings.py

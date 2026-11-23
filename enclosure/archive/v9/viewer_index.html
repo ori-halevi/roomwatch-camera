@@ -1,0 +1,587 @@
+<title>קופסת מצלמת הסלון</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a full-height workbench - 3D view filling the space, a control rail on the
+   right (RTL start); on phones the rail drops under the view. */
+:root {
+  --bg: #eef0ee;          /* workshop bench, slight green-grey */
+  --panel: #f8f9f7;
+  --line: #d3d8d3;
+  --fg: #1f2622;
+  --muted: #5f6b64;
+  --accent: #c2571a;      /* PETG orange, the colour of the hinge parts */
+  --accent-soft: #c2571a1f;
+  --view: #e4e8e4;
+  --font: "IBM Plex Sans Hebrew", "Segoe UI", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171b19; --panel: #1e2321; --line: #313834; --fg: #e5ebe7; --muted: #95a39b;
+  --accent: #ec7a3a; --accent-soft: #ec7a3a26; --view: #121513; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171b19; --panel: #1e2321; --line: #313834; --fg: #e5ebe7; --muted: #95a39b;
+  --accent: #ec7a3a; --accent-soft: #ec7a3a26; --view: #121513; color-scheme: dark }
+
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font); overflow: hidden; }
+.app { height: 100%; display: grid; grid-template-columns: 330px minmax(0, 1fr); }
+.rail { background: var(--panel); border-inline-end: 1px solid var(--line); overflow-y: auto;
+  padding-block: 16px 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.stage { position: relative; min-width: 0; background: var(--view); }
+#c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+h1 { font-size: 18px; font-weight: 600; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13px; margin: 2px 0 0; }
+h2 { font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+
+.ctl { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; margin-bottom: 10px; }
+.ctl label { font-weight: 500; }
+.ctl output { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+.ctl input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+.checks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.checks label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); }
+
+.btns { display: flex; flex-wrap: wrap; gap: 6px; }
+button { font: 500 13px var(--font); color: var(--fg); background: transparent; border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+
+.parts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.parts li { display: grid; grid-template-columns: 18px 12px minmax(0, 1fr) auto; gap: 8px; align-items: center;
+  padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+.parts li:hover { background: var(--accent-soft); }
+.parts li.sel { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.sw { width: 12px; height: 12px; border-radius: 3px; border: 1px solid #0003; }
+.parts .solo { font-size: 12px; padding: 1px 7px; }
+.parts .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* overlays on the 3D view */
+.ov { position: absolute; z-index: 2; }
+.views { top: max(12px, env(safe-area-inset-top, 0px)); inset-inline-start: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+.views button { background: var(--panel); }
+.dims { bottom: 12px; inset-inline-start: 12px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 10px; font-size: 12px; color: var(--muted); max-width: calc(100% - 24px); }
+.dims b { color: var(--fg); font-weight: 500; }
+.info { top: 56px; inset-inline-start: 12px; width: min(320px, calc(100% - 24px)); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; box-shadow: 0 6px 20px #0002; }
+.info h3 { margin: 0 0 4px; font-size: 15px; display: flex; gap: 8px; align-items: center; }
+.info p { margin: 6px 0 0; font-size: 13px; }
+.info .close { position: absolute; top: 6px; inset-inline-end: 6px; border: 0; font-size: 16px; padding: 2px 8px; }
+.mlabel { background: var(--accent); color: #fff; font: 500 12px var(--mono); padding: 2px 7px; border-radius: 4px;
+  transform: translate(-50%, -50%); pointer-events: none; white-space: nowrap; }
+.hint { top: 56px; inset-inline-end: 12px; background: var(--accent); color: #fff; padding: 5px 10px; border-radius: 6px; font-size: 12px; }
+.loading { inset: 0; display: grid; place-items: center; color: var(--muted); }
+
+/* life-size calibration */
+.cal { inset: 0; background: color-mix(in srgb, var(--bg) 92%, transparent); display: grid; place-items: center; z-index: 5; padding: 16px; }
+.cal .box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; width: min(520px, 100%); display: flex; flex-direction: column; gap: 12px; }
+.cal .card { border: 2px dashed var(--accent); border-radius: 3mm; margin-inline: auto; display: grid; place-items: center; color: var(--muted); font-size: 12px; max-width: 100%; }
+.note { font-size: 12px; color: var(--muted); margin: 0; }
+
+@media (max-width: 760px) {
+  body { overflow: auto; }
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: 58vh auto; height: auto; }
+  .stage { order: -1; }
+  .rail { border-inline-end: 0; border-top: 1px solid var(--line); overflow: visible; }
+  .info { top: auto; bottom: 48px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app" dir="rtl">
+  <aside class="rail">
+    <div>
+      <h1>קופסת מצלמת הסלון</h1>
+      <p class="sub">מודל v9: מחופש לגלאי תנועה של אזעקה · כל המידות במילימטרים · לחיצה על חלק מציגה פרטים</p>
+    </div>
+
+    <section>
+      <h2>תנועה</h2>
+      <div class="ctl"><label for="tilt">המצלמה: למעלה / למטה</label><output id="tiltOut"></output>
+        <input id="tilt" type="range" min="-5" max="40" step="1" value="25"></div>
+      <div class="ctl"><label for="pan">המצלמה: החלקה לצדדים</label><output id="panOut"></output>
+        <input id="pan" type="range" min="-38" max="38" step="1" value="0"></div>
+      <div class="ctl"><label for="explode">פירוק השכבות</label><output id="explodeOut"></output>
+        <input id="explode" type="range" min="0" max="100" step="1" value="0"></div>
+      <p class="note">העגלה מחליקה על קשת, כך שההחלקה עצמה היא הסיבוב. המצלמה מוטה סביב קצה העדשה. שאר החריץ מתמלא באריחים; כשמזיזים את המחוון, האריחים מסתדרים מחדש, כמו שתעשה ביד.</p>
+    </section>
+
+    <section>
+      <h2>תצוגה</h2>
+      <div class="checks">
+        <label><input type="checkbox" id="lidGlass" checked> מכסה שקוף</label>
+        <label><input type="checkbox" id="showRefs" checked> חפצים להשוואה</label>
+        <label><input type="checkbox" id="showGrid" checked> רשת 1 ס"מ</label>
+        <label><input type="checkbox" id="showEdges" checked> קווי מתאר</label>
+        <label><input type="checkbox" id="showWalls" checked> קיר ופינה</label>
+        <label><input type="checkbox" id="showFov"> שטח הראייה של המצלמה</label>
+      </div>
+    </section>
+
+    <section>
+      <h2>כלים</h2>
+      <div class="btns">
+        <button id="measureBtn" aria-pressed="false">מדידה בין שתי נקודות</button>
+        <button id="lifeBtn" aria-pressed="false">גודל אמיתי על המסך</button>
+        <button id="calBtn">כיול</button>
+        <button id="allBtn">הצג הכל</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>חלקים להדפסה</h2>
+      <ul class="parts" id="printList"></ul>
+    </section>
+    <section>
+      <h2>רכיבים בפנים (להמחשה)</h2>
+      <ul class="parts" id="dummyList"></ul>
+    </section>
+  </aside>
+
+  <main class="stage" id="stage">
+    <canvas id="c" aria-label="תצוגת תלת-ממד של הקופסה"></canvas>
+    <div class="ov views" id="views">
+      <button data-view="iso">איזומטרי</button>
+      <button data-view="front">חזית</button>
+      <button data-view="side">צד</button>
+      <button data-view="top">מלמעלה</button>
+    </div>
+    <div class="ov dims" id="dims"></div>
+    <div class="ov info" id="info" hidden>
+      <button class="close" id="infoClose" aria-label="סגור">×</button>
+      <h3><span class="sw" id="infoSw"></span><span id="infoName"></span></h3>
+      <div class="num" id="infoDims" style="font-size:12px;color:var(--muted);text-align:right"></div>
+      <p id="infoText"></p>
+    </div>
+    <div class="ov hint" id="hint" hidden></div>
+    <div class="ov mlabel" id="mlabel" hidden></div>
+    <div class="ov loading" id="loading">טוען את המודל…</div>
+    <div class="ov cal" id="cal" hidden>
+      <div class="box">
+        <h2 style="margin:0">כיול גודל אמיתי</h2>
+        <p class="note" style="font-size:13px;color:var(--fg)">הצמד כרטיס אשראי (או כל כרטיס בגודל הזה, כמו תעודת זהות או רב-קו) למסך, והזז את המחוון עד שהמסגרת בדיוק בגודל שלו.</p>
+        <div class="card" id="calCard">85.6 × 54 מ"מ</div>
+        <div class="ctl"><label for="calRange">גודל</label><output id="calOut"></output>
+          <input id="calRange" type="range" min="2" max="8" step="0.01"></div>
+        <div class="btns"><button id="calDone" aria-pressed="true">שמור</button><button id="calCancel">ביטול</button></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { STLLoader } from "three/addons/loaders/STLLoader.js";
+
+// Values from the OpenSCAD model (echoed by camera_enclosure.scad).
+const M = {W: 68.4, D: 33.05, pt: 3, H: 156, Ht: 200, R: 42.823, sc: [0, -9.7716, 178], face: 0.8, slit_a: 50, car_w: 8.2, tiles: [16, 12, 8, 6, 4, 3]};
+
+// group: "fixed" = tower coordinates (y = away from the wall), "carriage" = arc-centre
+// coordinates (centre at the origin, lens towards +y). ex = [x, y, z] explode steps.
+const PARTS = [
+  {id: "tower", file: "tower", name: "גוף המגדל (לבן)", color: "#eef0ee", group: "fixed", ex: [0, 0, 0], print: true,
+   text: "גב שטוח, צדדים שטוחים ליד הגב וחזית מעוגלת: נצמד לקיר ונכנס לפינה ימנית או שמאלית. בפנים: מדף לסוללה, צלעות, ולמטה המטען (USB-C בתחתית) והמתג. מדפיסים עומד, בלי תמיכות."},
+  {id: "hood", file: "hood", name: "כיפה (לבן)", color: "#f4f5f3", group: "fixed", ex: [0, 0, 2.5], print: true, lid: true,
+   text: "ממשיכה את צורת המגדל. בחזית חריץ לאורך הקשת שמתמלא באריחים כהים, כמו עדשה של גלאי תנועה. מתחתיו חרוט מספר דגם מומצא (PIR-210) וחלון קטן ל'נורית', בלי נורית; טיפת לק כהה או אדום תיתן לו מראה אמיתי. בפנים שתי מסילות מעוגלות לעגלה. מדפיסים הפוך."},
+  {id: "carriage", file: "carriage", name: "עגלה (שחור)", color: "#2c2f34", group: "carriage", ex: [0, 0, 0], print: true,
+   text: "נוסעת לאורך הקשת שמאחורי החריץ (עד בערך 38° לכל צד). החזית שלה ממלאת את החלק שלה בחריץ, עם חריצים כמו של האריחים ופתח לעדשה. בדפנות שני חריצים מעוגלים שמרכזם בקצה העדשה: הציר הווירטואלי של ההטיה. מודפסת עם עוד אחת לגיבוי."},
+  {id: "tiles", file: null, name: "אריחי החריץ (שחור)", color: "#26282c", group: "tiles", ex: [0, 0, 0], print: true,
+   text: "ממלאים את החריץ מסביב לעגלה, עם חריצים אנכיים כמו עדשה של גלאי תנועה. נלחצים מבחוץ, ושפה ושתי בליטות קטנות מחזיקות אותם. כדי להזיז את המצלמה: שולפים אריחים מצד אחד, מחליקים את העגלה, ומכניסים אותם בצד השני. יש שישה רוחבים (16, 12, 8, 6, 4, 3 מ\"מ), ומודפסים ארבעה מכל אחד."},
+  {id: "rocker", file: "rocker", name: "מחזיק המצלמה (נדנדה)", color: "#c9894b", group: "rocker", ex: [0, -0.8, 0], print: true,
+   text: "מחזיק את המצלמה. ארבעה פינים (3 מ\"מ) נוסעים בחריצים המעוגלים של העגלה, כך שהוא מוטה סביב קצה העדשה, מ-5° למעלה עד 40° למטה. מודפס עם עוד שניים לגיבוי."},
+  {id: "back", file: "back", name: "גב (לקיר, לבן)", color: "#e4e7e4", group: "fixed", ex: [0, -1.5, 0], print: true, lid: true,
+   text: "סוגר את המגדל ואת הכיפה, עם 4 ברגים M3×8. שני חורי מנעול לתלייה על מסמר, בורג או וו תמונה, ומשטח חלק למדבקות תלייה."},
+  {id: "foot", file: "foot", name: "רגל לארון (לא חובה, לבן)", color: "#e9ebe8", group: "fixed", ex: [0, 0, -1.5], print: true,
+   text: "המגדל נעמד בתוכה כשהוא על ארון או מדף, והיא מונעת ממנו ליפול. יש שקעים לאצבעות כדי להרים אותו לטעינה."},
+  {id: "battery", file: "d_battery", name: "סוללה 10,000 mAh", color: "#3d6fd6", group: "fixed", ex: [0, 0.6, 0],
+   text: "עומדת צמוד לגב. 61 × 14 × 110. הלשוניות למטה, ליד המטען."},
+  {id: "foam", file: "d_foam", name: "פס ספוג", color: "#ece4a8", group: "fixed", ex: [0, 0.9, 0],
+   text: "בין הסוללה לשתי הצלעות שבחזית. אם הסוללה דקה מ-14 מ\"מ, שמים שתי שכבות."},
+  {id: "tp4056", file: "d_tp4056", name: "מטען TP4056", color: "#2a40b8", group: "fixed", ex: [0, 0.6, 0],
+   text: "עומד בשני עמודים עם חריצים, ושקע ה-USB-C פונה למטה דרך התחתית. ככה אפשר לטעון גם כשהמגדל תלוי."},
+  {id: "switch", file: "d_switch", name: "מתג הפעלה", color: "#141516", group: "fixed", ex: [0, 0.6, 0],
+   text: "בעריסה על הרצפה, הידית יוצאת בחריץ בתחתית, ליד ה-USB-C."},
+  {id: "wires", file: "d_wires", name: "חוטים", color: "#c62828", group: "fixed", ex: [0, 0.6, 0],
+   text: "סוללה → TP4056 → מתג → עולים בתעלה שלפני הסוללה, עד פדי BAT ב-XIAO שבכיפה. המסלול להמחשה."},
+  {id: "xiao", file: "d_xiao", name: "XIAO ESP32S3 + Sense", color: "#2f3236", group: "fixed", ex: [0, 0.6, 0],
+   text: "עומד צמוד לגב, מעל הסוללה, בין שני חורי המנעול. מודבק בסרט ספוג דו-צדדי."},
+  {id: "flex", file: "d_flex", name: "כבל המצלמה", color: "#e39b35", group: "fixed", ex: [0, 0, 2.5],
+   text: "כבל של 75 מ\"מ מתחתית העגלה אל ה-XIAO, עם מספיק רפיון כדי שהעגלה תוכל לנסוע."},
+  {id: "antenna", file: "d_antenna", name: "אנטנת Wi-Fi", color: "#c4a174", group: "fixed", ex: [0, 0, 2.5],
+   text: "מודבקת לתקרה שבתוך הכיפה. היא גבוהה ורחוקה מהסוללה, וזה טוב לקליטה."},
+  {id: "camera", file: "d_camera", name: "מצלמה OV2640 (120°)", color: "#0e0f10", group: "rocker", ex: [0, -0.8, 0],
+   text: "יושבת בנדנדה, קצה העדשה בדיוק בפני השטח של החריץ, ולכן שולי החריץ לא נכנסים לתמונה."},
+];
+const STEP = 16;  // mm per explode level at 100%
+
+// ---------- scene ----------
+const canvas = document.getElementById("c");
+const stage = document.getElementById("stage");
+const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
+const persp = new THREE.PerspectiveCamera(35, 1, 1, 5000);
+persp.up.set(0, 0, 1);
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, -5000, 5000);
+ortho.up.set(0, 0, 1);
+let camera = persp;
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+const target = new THREE.Vector3(0, 15, 100);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f8a, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(-150, -200, 300);
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xffffff, 0.5);
+fill.position.set(200, 150, 80);
+scene.add(fill);
+
+// groups: fixed (everything that doesn't move) and the eye, which turns about its
+// centre: pan about the vertical, then tilt.
+const fixed = new THREE.Group(), carPan = new THREE.Group(), rockerTilt = new THREE.Group();
+const wall = new THREE.Group(), mount = new THREE.Group(), mountInner = new THREE.Group();
+scene.add(wall, mount);
+mount.position.set(M.W / 2, -M.pt, 0);              // the wedge turns the tower about its right back edge
+mount.add(mountInner);
+mountInner.position.set(-M.W / 2, M.pt, 0);
+mountInner.add(fixed, carPan);
+carPan.add(rockerTilt);
+rockerTilt.position.set(0, M.R + M.face, 0);
+// the slit tiles are laid out again whenever the carriage moves
+const tilesBase = new THREE.Group(), tilesGroup = new THREE.Group();
+mountInner.add(tilesBase);
+tilesBase.position.set(...M.sc);
+tilesBase.add(tilesGroup);
+const groupOf = {fixed, carriage: carPan, rocker: rockerTilt, wall, tiles: tilesBase};
+
+// floor grid (1 cm, darker every 10 cm) and reference objects
+const floorZ = -3;
+const gridGroup = new THREE.Group();
+{
+  const g1 = new THREE.GridHelper(400, 40, 0x9aa39c, 0xc4cbc5);
+  const g2 = new THREE.GridHelper(400, 4, 0x7d8780, 0x7d8780);
+  for (const g of [g1, g2]) { g.rotation.x = Math.PI / 2; g.position.set(0, 100, floorZ - 0.05); g.material.transparent = true; g.material.opacity = 0.7; gridGroup.add(g); }
+}
+scene.add(gridGroup);
+
+const refs = new THREE.Group();
+{
+  const metal = new THREE.MeshStandardMaterial({color: 0xb9bec4, metalness: 0.6, roughness: 0.35});
+  const red = new THREE.MeshStandardMaterial({color: 0xb3261e, roughness: 0.5});
+  const can = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(33, 33, 115, 48), red);
+  body.rotation.x = Math.PI / 2; body.position.z = 57.5;
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(27, 33, 6, 48), metal);
+  top.rotation.x = Math.PI / 2; top.position.z = 118;
+  can.add(body, top);
+  can.position.set(95, 60, floorZ);
+  can.userData = {name: "פחית שתייה 330 מ\"ל", dims: "קוטר 66 · גובה 121", text: "להשוואת גודל."};
+  const card = new THREE.Mesh(new THREE.BoxGeometry(85.6, 54, 0.8), new THREE.MeshStandardMaterial({color: 0x2f7d6d, roughness: 0.6}));
+  card.position.set(-110, 70, floorZ + 0.4);
+  card.userData = {name: "כרטיס אשראי", dims: "85.6 × 54", text: "להשוואת גודל."};
+  const coin = new THREE.Mesh(new THREE.CylinderGeometry(11.5, 11.5, 2.2, 40), new THREE.MeshStandardMaterial({color: 0xc9a74a, metalness: 0.7, roughness: 0.3}));
+  coin.rotation.x = Math.PI / 2; coin.position.set(-110, 120, floorZ + 1.1);
+  coin.userData = {name: "מטבע 10 ₪", dims: "קוטר 23", text: "להשוואת גודל."};
+  refs.add(can, card, coin);
+}
+scene.add(refs);
+const walls = new THREE.Group();
+{
+  const mat = new THREE.MeshStandardMaterial({color: 0xe9e4da, roughness: 0.95, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false});
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(420, 320), mat);
+  back.rotation.x = Math.PI / 2; back.position.set(60, -M.pt - 0.2, floorZ + 160);
+  const side = new THREE.Mesh(new THREE.PlaneGeometry(320, 260), mat);
+  side.rotation.y = Math.PI / 2; side.position.set(-M.W / 2 - 0.2, -M.pt + 130, floorZ + 160);
+  walls.add(back, side);
+}
+scene.add(walls);
+
+// ---------- load parts ----------
+const loader = new STLLoader();
+const meshes = {};
+const edgeMat = new THREE.LineBasicMaterial({color: 0x1a1f1c, transparent: true, opacity: 0.35});
+// all STL files, base64 in one JSON (models/*.stl packed by the build step)
+const packed = await (await fetch("models.json")).json();
+const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0)).buffer;
+const tileGeos = {}, tileMat = new THREE.MeshStandardMaterial({color: "#26282c", roughness: 0.75, side: THREE.DoubleSide});
+for (const w of M.tiles) { tileGeos[w] = loader.parse(b64(packed["tile_" + w])); tileGeos[w].computeVertexNormals(); tileGeos[w].computeBoundingBox(); }
+await Promise.all(PARTS.map(async p => {
+  if (!p.file) {
+    tilesGroup.userData = {part: p, edges: new THREE.Group()};
+    tilesGroup.material = tileMat;
+    tilesGroup.geometry = tileGeos[16];
+    meshes[p.id] = tilesGroup;
+    return;
+  }
+  const geo = loader.parse(b64(packed[p.file]));
+  geo.computeVertexNormals();
+  geo.computeBoundingBox();
+  const mat = new THREE.MeshStandardMaterial({color: p.color, roughness: 0.75, metalness: 0.02, side: THREE.DoubleSide});
+  const mesh = new THREE.Mesh(geo, mat);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), edgeMat);
+  mesh.add(edges);
+  mesh.userData = {part: p, edges};
+  groupOf[p.group].add(mesh);
+  if (p.hidden) mesh.visible = false;
+  meshes[p.id] = mesh;
+}));
+document.getElementById("loading").hidden = true;
+
+// ---------- part lists ----------
+function row(p) {
+  const li = document.createElement("li");
+  li.dataset.id = p.id;
+  li.innerHTML = `<input type="checkbox" checked aria-label="הצג ${p.name}"><span class="sw" style="background:${p.color}"></span><span class="nm">${p.name}</span><button class="solo" title="הצג רק את החלק הזה">לבד</button>`;
+  const cb = li.querySelector("input");
+  cb.onclick = e => { e.stopPropagation(); meshes[p.id].visible = cb.checked; updateDims(); };
+  li.querySelector(".solo").onclick = e => { e.stopPropagation(); solo(p.id); };
+  li.onclick = () => select(meshes[p.id]);
+  return li;
+}
+for (const p of PARTS) document.getElementById(p.print ? "printList" : "dummyList").append(row(p));
+function syncChecks() {
+  document.querySelectorAll(".parts li").forEach(li => li.querySelector("input").checked = meshes[li.dataset.id].visible);
+}
+function solo(id) {
+  for (const k in meshes) meshes[k].visible = k === id;
+  refs.visible = false; document.getElementById("showRefs").checked = false;
+  syncChecks(); select(meshes[id]); frame([meshes[id]]); updateDims();
+}
+document.getElementById("allBtn").onclick = () => {
+  for (const k in meshes) meshes[k].visible = true;
+  syncChecks(); updateDims(); setView("iso");
+};
+
+// ---------- motion ----------
+const $ = id => document.getElementById(id);
+function applyMotion() {
+  const t = +$("tilt").value, pn = +$("pan").value, ex = +$("explode").value / 100;
+  carPan.position.set(M.sc[0], M.sc[1], M.sc[2] + 2.5 * STEP * ex);
+  tilesBase.position.set(M.sc[0], M.sc[1], M.sc[2] + 2.5 * STEP * ex);
+  layoutTiles(pn);
+  carPan.rotation.z = pn * Math.PI / 180;
+  rockerTilt.rotation.x = -t * Math.PI / 180;
+  for (const p of PARTS) meshes[p.id].position.set(...p.ex.map(v => v * STEP * ex));
+  $("tiltOut").textContent = t > 0 ? `${t}° למטה` : t < 0 ? `${-t}° למעלה` : "ישר";
+  $("panOut").textContent = pn > 0 ? `${pn}° שמאלה` : pn < 0 ? `${-pn}° ימינה` : "ישר";
+  $("explodeOut").textContent = ex ? `${Math.round(ex * 100)}%` : "מורכב";
+  updateDims();
+}
+for (const id of ["tilt", "pan", "explode"]) $(id).addEventListener("input", applyMotion);
+$("lidGlass").onchange = () => {
+  for (const p of PARTS) if (p.lid) { const m = meshes[p.id].material; m.transparent = $("lidGlass").checked; m.opacity = m.transparent ? 0.35 : 1; m.depthWrite = !m.transparent; }
+};
+$("showRefs").onchange = () => refs.visible = $("showRefs").checked;
+$("showGrid").onchange = () => gridGroup.visible = $("showGrid").checked;
+$("showWalls").onchange = () => walls.visible = $("showWalls").checked;
+
+// Field of view: 120 degrees across the diagonal of a 4:3 picture (about 108 wide,
+// 92 high), drawn out to half a metre from the lens tip. It moves with the camera.
+const fov = new THREE.Group();
+{
+  const L = 500, t = Math.tan(60 * Math.PI / 180), hw = L * t * 0.8, hh = L * t * 0.6;
+  const c = [[-hw, L, -hh], [hw, L, -hh], [hw, L, hh], [-hw, L, hh]];
+  const tri = [];
+  for (let i = 0; i < 4; i++) tri.push(0, 0, 0, ...c[i], ...c[(i + 1) % 4]);
+  tri.push(...c[0], ...c[1], ...c[2], ...c[0], ...c[2], ...c[3]);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(tri, 3));
+  fov.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({color: 0xf2a33a, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false})));
+  const ln = [0, 0, 0, 0, L, 0];
+  for (const q of c) ln.push(0, 0, 0, ...q);
+  for (let i = 0; i < 4; i++) ln.push(...c[i], ...c[(i + 1) % 4]);
+  const lg = new THREE.BufferGeometry();
+  lg.setAttribute("position", new THREE.Float32BufferAttribute(ln, 3));
+  fov.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({color: 0xd97b1f, transparent: true, opacity: 0.85})));
+}
+fov.position.set(0, 0, 0);
+fov.visible = false;
+rockerTilt.add(fov);
+$("showFov").onchange = () => {
+  fov.visible = $("showFov").checked;
+  if (fov.visible) frame([...Object.values(meshes).filter(m => m.visible), fov], new THREE.Vector3(...DIRS.iso));
+};
+$("showEdges").onchange = () => { for (const k in meshes) meshes[k].userData.edges.visible = $("showEdges").checked; applyMotion(); };
+$("lidGlass").onchange();
+
+function layoutTiles(pan) {
+  tilesGroup.clear();
+  const noseA = M.car_w / M.R * 180 / Math.PI;
+  for (const side of [-1, 1]) {
+    const edge = pan + side * noseA;
+    let L = (side > 0 ? M.slit_a - edge : edge + M.slit_a) / 180 * Math.PI * M.R, at = 0;
+    while (L >= M.tiles[M.tiles.length - 1]) {
+      const w = M.tiles.find(x => x <= L);
+      const m = new THREE.Mesh(tileGeos[w], tileMat);
+      if ($("showEdges").checked) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(tileGeos[w], 30), edgeMat));
+      m.rotation.z = (edge + side * (at + w / 2) / M.R * 180 / Math.PI) * Math.PI / 180;
+      tilesGroup.add(m);
+      at += w; L -= w;
+    }
+  }
+}
+
+// overall size of the printed parts as they stand now
+function updateDims() {
+  const b = new THREE.Box3();
+  scene.updateMatrixWorld(true);
+  for (const p of PARTS) if (p.print && meshes[p.id].visible) b.expandByObject(meshes[p.id]);
+  const s = b.getSize(new THREE.Vector3());
+  $("dims").innerHTML = b.isEmpty() ? "" :
+    `כל מה שמוצג: <b class="num">${s.x.toFixed(0)} × ${s.y.toFixed(0)} × ${s.z.toFixed(0)}</b> מ"מ (אורך × רוחב × גובה) · המגדל: <b class="num">68 × 36 × 200</b> (רוחב × עומק מהקיר × גובה)`;
+}
+
+// ---------- selection ----------
+let selected = null;
+function select(mesh) {
+  if (selected?.material?.emissive) selected.material.emissive.setHex(0);
+  selected = mesh;
+  document.querySelectorAll(".parts li").forEach(li => li.classList.toggle("sel", mesh?.userData.part?.id === li.dataset.id));
+  if (!mesh) { $("info").hidden = true; return; }
+  const p = mesh.userData.part;
+  if (p) {
+    mesh.material.emissive.setHex(0x5a2a0a);
+    const s = mesh.geometry.boundingBox.getSize(new THREE.Vector3());
+    $("infoName").textContent = p.name;
+    $("infoSw").style.background = p.color;
+    $("infoDims").textContent = `${s.x.toFixed(1)} × ${s.y.toFixed(1)} × ${s.z.toFixed(1)} mm`;
+    $("infoText").textContent = p.text;
+  } else {
+    const u = mesh.userData.name ? mesh.userData : mesh.parent.userData;
+    $("infoName").textContent = u.name; $("infoSw").style.background = "transparent";
+    $("infoDims").textContent = u.dims + " mm"; $("infoText").textContent = u.text;
+  }
+  $("info").hidden = false;
+}
+$("infoClose").onclick = () => select(null);
+
+// ---------- picking: click selects, or places measure points ----------
+const ray = new THREE.Raycaster();
+let down = null, measuring = false, mPts = [], mObjs = [];
+canvas.addEventListener("pointerdown", e => down = [e.clientX, e.clientY]);
+canvas.addEventListener("pointerup", e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+  const r = canvas.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1), camera);
+  const targets = [...Object.values(meshes).filter(m => m.visible), ...(refs.visible ? refs.children : [])];
+  const hit = ray.intersectObjects(targets, true).find(h => h.object.isMesh);
+  if (measuring) { if (hit) addPoint(hit.point); return; }
+  select(hit ? (hit.object.userData.part || hit.object.userData.name ? hit.object : hit.object.parent) : null);
+});
+
+function clearMeasure() { for (const o of mObjs) scene.remove(o); mObjs = []; mPts = []; $("mlabel").hidden = true; }
+function addPoint(p) {
+  if (mPts.length === 2) clearMeasure();
+  mPts.push(p.clone());
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 12), new THREE.MeshBasicMaterial({color: 0xc2571a, depthTest: false}));
+  dot.position.copy(p); dot.renderOrder = 10; scene.add(dot); mObjs.push(dot);
+  if (mPts.length === 2) {
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(mPts), new THREE.LineBasicMaterial({color: 0xc2571a, depthTest: false}));
+    line.renderOrder = 10; scene.add(line); mObjs.push(line);
+    $("mlabel").textContent = `${mPts[0].distanceTo(mPts[1]).toFixed(1)} mm`;
+    $("mlabel").hidden = false;
+    $("hint").textContent = "לחץ שוב כדי להתחיל מדידה חדשה";
+  } else $("hint").textContent = "עכשיו לחץ על הנקודה השנייה";
+}
+$("measureBtn").onclick = () => {
+  measuring = !measuring;
+  $("measureBtn").setAttribute("aria-pressed", measuring);
+  $("hint").hidden = !measuring;
+  $("hint").textContent = "לחץ על נקודה ראשונה על אחד החלקים";
+  if (!measuring) clearMeasure();
+};
+
+// ---------- views ----------
+function frame(objs, dir) {
+  scene.updateMatrixWorld(true);
+  const b = new THREE.Box3();
+  for (const o of objs) b.expandByObject(o);
+  const c = b.getCenter(new THREE.Vector3()), r = b.getSize(new THREE.Vector3()).length() / 2;
+  const d = (dir || camera.position.clone().sub(controls.target)).clone().normalize();
+  controls.target.copy(c);
+  if (camera === persp) camera.position.copy(c).addScaledVector(d, r / Math.sin(persp.fov * Math.PI / 360) * 1.05);
+  else camera.position.copy(c).addScaledVector(d, 1000);
+  controls.update();
+}
+const DIRS = {iso: [0.9, 1.3, 0.6], front: [0, 1, 0.02], side: [1, 0, 0.02], top: [0, 0.0001, 1]};
+function setView(v) {
+  const vis = Object.values(meshes).filter(m => m.visible);
+  frame(vis.length ? vis : [meshes.box], new THREE.Vector3(...DIRS[v]));
+}
+document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => setView(b.dataset.view));
+
+// ---------- life size ----------
+const store = {get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+               set(k, v) { try { localStorage.setItem(k, v); } catch {} }};
+let pxPerMm = +store.get("pxPerMm") || 96 / 25.4;
+let lifeSize = false;
+function showCal() {
+  $("calRange").value = pxPerMm; drawCal(); $("cal").hidden = false;
+}
+function drawCal() {
+  const v = +$("calRange").value;
+  $("calCard").style.width = 85.6 * v + "px"; $("calCard").style.height = 54 * v + "px";
+  $("calOut").textContent = v.toFixed(2) + " px/mm";
+}
+$("calRange").oninput = drawCal;
+$("calBtn").onclick = showCal;
+$("calCancel").onclick = () => $("cal").hidden = true;
+$("calDone").onclick = () => { pxPerMm = +$("calRange").value; store.set("pxPerMm", pxPerMm); store.set("calibrated", "1"); $("cal").hidden = true; if (lifeSize) resize(); else setLife(true); };
+function setLife(on) {
+  lifeSize = on;
+  $("lifeBtn").setAttribute("aria-pressed", on);
+  const pos = camera.position.clone(), tgt = controls.target.clone();
+  camera = on ? ortho : persp;
+  camera.position.copy(pos);
+  controls.object = camera;
+  controls.enableZoom = !on;   // zoom would break the 1:1 scale
+  controls.target.copy(tgt);
+  resize();
+  if (on) setView("side");
+}
+$("lifeBtn").onclick = () => {
+  if (!lifeSize && !store.get("calibrated")) { showCal(); return; }
+  setLife(!lifeSize);
+};
+
+// ---------- render loop ----------
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  persp.aspect = w / h; persp.updateProjectionMatrix();
+  const hw = w / 2 / pxPerMm, hh = h / 2 / pxPerMm;
+  Object.assign(ortho, {left: -hw, right: hw, top: hh, bottom: -hh});
+  ortho.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+resize();
+applyMotion();
+setView("iso");
+const tmp = new THREE.Vector3();
+renderer.setAnimationLoop(() => {
+  controls.update();
+  renderer.render(scene, camera);
+  if (mPts.length === 2) {
+    tmp.copy(mPts[0]).add(mPts[1]).multiplyScalar(0.5).project(camera);
+    $("mlabel").style.left = (tmp.x + 1) / 2 * stage.clientWidth + "px";
+    $("mlabel").style.top = (1 - tmp.y) / 2 * stage.clientHeight + "px";
+  }
+});
+</script>

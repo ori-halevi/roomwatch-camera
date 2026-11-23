@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>הוראות הדפסה – קופסה למצלמה</title>
+<style>
+  @page { size: A4; margin: 14mm 14mm; }
+  :root { --fg: #1d2420; --muted: #5b665f; --line: #cfd6d1; --head: #eef2ef; --accent: #b4521a; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--fg); background: #fff; font-size: 11pt; line-height: 1.45; margin: 0; }
+  h1 { font-size: 17pt; margin: 0 0 2mm; }
+  .sub { color: var(--muted); margin: 0 0 5mm; }
+  h2 { font-size: 12pt; margin: 6mm 0 2mm; color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  th, td { border: 1px solid var(--line); padding: 1.6mm 2mm; text-align: right; vertical-align: top; }
+  th { background: var(--head); font-weight: 600; }
+  td.f { font-family: Consolas, "Courier New", monospace; direction: ltr; text-align: left; white-space: nowrap; font-size: 9pt; }
+  td.n { text-align: center; white-space: nowrap; }
+  ul { margin: 0; padding-inline-start: 5mm; }
+  li { margin: 0.6mm 0; }
+  .box { border: 1px solid var(--line); border-radius: 2mm; padding: 3mm 4mm; margin-top: 5mm; }
+  .contact { margin-top: 6mm; display: flex; gap: 10mm; }
+  .contact span { flex: 1; border-bottom: 1px solid var(--muted); padding-bottom: 1mm; color: var(--muted); }
+  .num { direction: ltr; unicode-bidi: isolate; }
+</style>
+</head>
+<body>
+  <h1>הוראות הדפסה – קופסה למצלמה ביתית</h1>
+  <p class="sub">7 קבצי STL, כולם כבר בכיוון ההדפסה הנכון. בערך <span class="num">170</span> גרם חומר ובערך <span class="num">12–15</span> שעות הדפסה בסך הכל. תודה רבה על העזרה!</p>
+
+  <h2>הקבצים</h2>
+  <table>
+    <tr><th>קובץ</th><th>כמות</th><th>צבע</th><th>הערות</th></tr>
+    <tr><td class="f">01_tower_WHITE_x1.stl</td><td class="n">1</td><td>לבן</td><td>גוף ראשי, גובה <span class="num">156</span> מ"מ. מומלץ Brim (גבוה וצר).</td></tr>
+    <tr><td class="f">02_hood_WHITE_x1_SUPPORTS.stl</td><td class="n">1</td><td>לבן</td><td><b>צריך תמיכות</b> (Supports everywhere / Tree): יש בפנים שתי מסילות תלויות.</td></tr>
+    <tr><td class="f">03_back_WHITE_x1.stl</td><td class="n">1</td><td>לבן</td><td>לוח באורך <span class="num">202</span> מ"מ. אפשר לסובב אותו באלכסון אם המשטח קטן.</td></tr>
+    <tr><td class="f">04_carriage_BLACK_x2.stl</td><td class="n">2</td><td>שחור</td><td>חלק קטן ומדויק (אחד גיבוי).</td></tr>
+    <tr><td class="f">05_rocker_BLACK_x3.stl</td><td class="n">3</td><td>שחור</td><td>חלק קטן מאוד (שניים גיבוי).</td></tr>
+    <tr><td class="f">06_tiles_BLACK_x1_file.stl</td><td class="n">1</td><td>שחור</td><td>קובץ אחד שמכיל 24 אריחים קטנים. מומלץ Brim.</td></tr>
+    <tr><td class="f">07_foot_WHITE_x1_optional.stl</td><td class="n">1</td><td>לבן</td><td><b>לא חובה</b>. אפשר לוותר אם חסר זמן או חומר.</td></tr>
+  </table>
+  <p class="sub" style="margin-top:2mm">אם אין צבעים: הכל בצבע אחד זה בסדר גמור. העדפה: גוף בלבן, וחלקים קטנים בשחור.</p>
+
+  <h2>הגדרות</h2>
+  <ul>
+    <li><b>חומר:</b> PETG עדיף (המכשיר יהיה גבוה ליד התקרה, חם בקיץ). PLA גם בסדר.</li>
+    <li><b>שכבה</b> <span class="num">0.2</span> מ"מ, <b>פיה</b> <span class="num">0.4</span>, <b>3 קירות</b> (Perimeters), <b>מילוי</b> <span class="num">20%</span>.</li>
+    <li><b>קנה מידה <span class="num">100%</span></b>: לא לשנות גודל ולא "לתקן חורים". המרווחים מחושבים.</li>
+    <li><b>תמיכות:</b> רק בקובץ 02. כל השאר בלי תמיכות.</li>
+  </ul>
+
+  <div class="box">
+    <b>אם משהו לא מסתדר</b> (למשל אין מקום על המשטח או שקובץ נראה מוזר), אשמח שתגידו לי ואסדר את הקובץ. אין צורך לתקן בעצמכם.
+  </div>
+
+  <div class="contact"><span>שם:</span><span>טלפון:</span></div>
+</body>
+</html>

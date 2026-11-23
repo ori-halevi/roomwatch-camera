@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Living Room Camera</title>
+<style>
+/* ===================== tokens ===================== */
+:root{
+  --radius:10px; --gap:18px;
+  --mono:ui-monospace,"Cascadia Code","Consolas","SFMono-Regular",Menlo,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+/* Hacker theme (default) */
+body[data-theme="hacker"]{
+  --bg:#030805; --panel:rgba(4,18,10,.82); --panel-2:#06170d; --line:#0f3a22; --line-2:#16583a;
+  --text:#b9ffd0; --muted:#4f9a6c; --accent:#26ff7a; --accent-2:#18d9ff; --warn:#ffd23f; --bad:#ff3b5c;
+  --accent-ink:#001a0b; --font:var(--mono); --radius:4px;
+  --glow:0 0 10px rgba(38,255,122,.35);
+}
+/* Normal theme: light or dark following the system */
+body[data-theme="normal"]{
+  --bg:#f5f6f8; --panel:#ffffff; --panel-2:#f0f2f5; --line:#e3e6eb; --line-2:#d3d8df;
+  --text:#1b1f24; --muted:#667080; --accent:#2563eb; --accent-2:#0ea5e9; --warn:#b7791f; --bad:#dc2626;
+  --accent-ink:#ffffff; --font:var(--sans); --glow:none;
+}
+@media (prefers-color-scheme:dark){
+  body[data-theme="normal"]{
+    --bg:#0f1115; --panel:#171a20; --panel-2:#1d2128; --line:#262b33; --line-2:#323843;
+    --text:#e7eaf0; --muted:#8b94a3; --accent:#5b8cff; --accent-2:#38bdf8; --warn:#f5b84a; --bad:#f87171;
+    --accent-ink:#0b1020;
+  }
+}
+
+/* ===================== base ===================== */
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.45;
+  min-height:100vh;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:18px 16px 28px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.hidden{display:none!important}
+#matrix{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.10}
+body[data-theme="normal"] #matrix,body[data-theme="normal"] .h-only{display:none!important}
+body[data-theme="hacker"] .n-only{display:none!important}
+body[data-theme="hacker"]::after{content:"";position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+
+/* ===================== header ===================== */
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin-bottom:var(--gap)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.logo{width:38px;height:38px;flex:none;border-radius:var(--radius);display:grid;place-items:center;
+  background:var(--panel-2);border:1px solid var(--line-2);color:var(--accent);box-shadow:var(--glow)}
+.brand h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.brand p{margin:0;color:var(--muted);font-size:12px}
+body[data-theme="hacker"] .brand h1{color:var(--accent);text-shadow:var(--glow);letter-spacing:.08em}
+.glitch{position:relative;display:inline-block}
+body[data-theme="hacker"] .glitch::before,body[data-theme="hacker"] .glitch::after{content:attr(data-text);position:absolute;inset:0;
+  overflow:hidden;opacity:.7;pointer-events:none}
+body[data-theme="hacker"] .glitch::before{color:var(--accent-2);animation:gl1 3.2s infinite steps(1)}
+body[data-theme="hacker"] .glitch::after{color:var(--bad);animation:gl2 2.7s infinite steps(1)}
+@keyframes gl1{0%,92%,100%{clip-path:inset(0 0 100% 0)}93%{clip-path:inset(20% 0 55% 0);transform:translate(-2px,0)}96%{clip-path:inset(60% 0 10% 0);transform:translate(2px,0)}}
+@keyframes gl2{0%,88%,100%{clip-path:inset(0 0 100% 0)}89%{clip-path:inset(70% 0 5% 0);transform:translate(2px,0)}91%{clip-path:inset(10% 0 70% 0);transform:translate(-1px,0)}}
+.head-right{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:999px;
+  background:var(--panel);border:1px solid var(--line);font-size:12px;white-space:nowrap}
+body[data-theme="hacker"] .pill{border-radius:var(--radius)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.dot.ok{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
+.pill b{font-weight:600}
+.icon-btn{width:32px;height:32px;display:inline-grid;place-items:center;border-radius:var(--radius);cursor:pointer;
+  background:var(--panel);border:1px solid var(--line);transition:border-color .15s,background .15s}
+.icon-btn:hover{border-color:var(--accent)}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ===================== layout ===================== */
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr);gap:var(--gap);align-items:start}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-top:var(--gap)}
+@media (max-width:900px){.grid,.grid-2{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+body[data-theme="normal"] .card{box-shadow:0 1px 2px rgba(0,0,0,.05)}
+body[data-theme="hacker"] .card{backdrop-filter:blur(2px);box-shadow:inset 0 0 0 1px rgba(38,255,122,.04)}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.card-h h2{margin:0;font-size:13px;font-weight:600;letter-spacing:.02em}
+body[data-theme="hacker"] .card-h h2{text-transform:uppercase;letter-spacing:.14em;color:var(--accent)}
+body[data-theme="hacker"] .card-h h2::before{content:"// ";color:var(--muted)}
+.card-b{padding:14px}
+.meta{color:var(--muted);font-size:12px}
+
+/* ===================== feed ===================== */
+.stage{position:relative;aspect-ratio:4/3;background:#000;overflow:hidden}
+.stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+body[data-theme="hacker"] .stage img{filter:contrast(1.05) saturate(.9)}
+.hud{position:absolute;inset:0;pointer-events:none;z-index:2;font-family:var(--mono);font-size:12px;color:#d9ffe6;
+  text-shadow:0 0 3px #000,0 0 2px #000;letter-spacing:.08em}
+.hud::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px),
+  radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.55))}
+.hud span{position:absolute}
+.hud .tl{top:10px;left:12px}.hud .tr{top:10px;right:12px}.hud .bl{bottom:10px;left:12px}.hud .br{bottom:10px;right:12px}
+.rec{color:#ff5c6c}.rec::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff3b5c;
+  margin-right:6px;box-shadow:0 0 6px #ff3b5c;animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.bracket{position:absolute;width:22px;height:22px;border:2px solid rgba(38,255,122,.8)}
+.b1{top:34px;left:12px;border-right:0;border-bottom:0}.b2{top:34px;right:12px;border-left:0;border-bottom:0}
+.b3{bottom:34px;left:12px;border-right:0;border-top:0}.b4{bottom:34px;right:12px;border-left:0;border-top:0}
+.reticle{position:absolute;left:50%;top:50%;width:34px;height:34px;transform:translate(-50%,-50%);border:1px solid rgba(38,255,122,.45);border-radius:50%}
+.reticle::before,.reticle::after{content:"";position:absolute;background:rgba(38,255,122,.55)}
+.reticle::before{left:50%;top:-8px;bottom:-8px;width:1px}.reticle::after{top:50%;left:-8px;right:-8px;height:1px}
+.overlay{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  text-align:center;padding:20px;background:#050806;cursor:pointer}
+body[data-theme="normal"] .overlay{background:var(--panel-2);color:var(--text)}
+.overlay canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.16}
+body[data-theme="normal"] .overlay canvas{display:none}
+.overlay .big{position:relative;font-size:clamp(16px,2.6vw,22px);font-weight:700;letter-spacing:.04em}
+body[data-theme="hacker"] .overlay .big{color:var(--accent);text-shadow:var(--glow);letter-spacing:.18em;text-transform:uppercase}
+.overlay .small{position:relative;color:var(--muted);font-size:12px;max-width:420px}
+.spinner{position:relative;width:26px;height:26px;border-radius:50%;border:3px solid var(--line-2);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.progress{height:3px;background:var(--line)}
+.progress i{display:block;height:100%;width:0;background:var(--accent);box-shadow:var(--glow);transition:width .5s linear}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 14px}
+.toolbar .spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 13px;border-radius:var(--radius);cursor:pointer;
+  border:1px solid var(--line-2);background:var(--panel-2);font-size:13px;font-weight:500;transition:border-color .15s,background .15s,color .15s;white-space:nowrap}
+.btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08);color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+body[data-theme="hacker"] .btn{text-transform:uppercase;letter-spacing:.08em;font-size:12px}
+kbd{font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:4px;border:1px solid var(--line-2);border-bottom-width:2px;background:var(--panel-2);color:var(--muted)}
+.btn kbd{margin-left:2px}
+@media (max-width:560px){.btn kbd{display:none}}
+
+.orient-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 14px 12px}
+.orient-bar .label{color:var(--muted);font-size:12px;margin-right:4px}
+.orient-bar .state{color:var(--muted);font-size:12px;margin-left:auto}
+.btn.sm{height:30px;padding:0 10px;font-size:12px}
+.btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+
+/* fullscreen: the true picture only */
+.stage:fullscreen{aspect-ratio:auto;width:100vw;height:100vh;background:#000}
+.stage:fullscreen .hud,.stage:fullscreen .overlay canvas{display:none}
+.stage:fullscreen img{filter:none!important}
+.fs-exit{position:absolute;z-index:5;top:14px;right:14px;display:none;height:34px;padding:0 12px;border-radius:8px;cursor:pointer;
+  background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.25);font:13px var(--sans);opacity:0;transition:opacity .2s}
+.stage:fullscreen .fs-exit{display:inline-flex;align-items:center;gap:6px}
+.stage:fullscreen:hover .fs-exit{opacity:1}
+
+/* ===================== stats ===================== */
+.stats{list-style:none;margin:0;padding:0}
+.stats li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line)}
+.stats li:last-child{border-bottom:0}
+.stats .k{color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.stats .v{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.help{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--line-2);
+  font-size:10px;color:var(--muted);cursor:help;font-family:var(--sans)}
+.batt{display:flex;align-items:center;gap:8px}
+.batt .bar{width:46px;height:14px;border:1.5px solid var(--muted);border-radius:3px;padding:1.5px;position:relative}
+.batt .bar::after{content:"";position:absolute;right:-4px;top:3px;width:2px;height:5px;background:var(--muted);border-radius:1px}
+.batt .bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:1px}
+.note{margin:0;padding:10px 14px 14px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
+
+/* ===================== chart & log ===================== */
+.chart-wrap{position:relative;height:230px}
+.chart-wrap svg{width:100%;height:100%;display:block}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:230px;text-align:center;color:var(--muted);padding:16px}
+.empty b{color:var(--text);font-weight:600}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--line-2);background:transparent;cursor:pointer;font-size:12px;color:var(--muted)}
+body[data-theme="hacker"] .chip{border-radius:var(--radius)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.log{list-style:none;margin:0;padding:0;max-height:330px;overflow-y:auto}
+.log li{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line)}
+.log li:last-child{border-bottom:0}
+.log .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;background:var(--panel-2);color:var(--muted)}
+.log .ic.view{color:var(--accent-2)}.log .ic.alert{color:var(--bad)}.log .ic.good{color:var(--accent)}
+.log .t{font-weight:500}.log .d{color:var(--muted);font-size:12px}
+.log time{color:var(--muted);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+body[data-theme="hacker"] .log .t{text-transform:uppercase;letter-spacing:.05em;font-size:12px}
+
+/* ===================== footer, tooltip, toast, dialogs ===================== */
+footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-top:var(--gap);
+  padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+.ticker{font-family:var(--mono);overflow:hidden;white-space:nowrap;max-width:46ch;opacity:.7}
+#tip{position:fixed;z-index:50;max-width:260px;padding:7px 10px;border-radius:6px;font:12px/1.4 var(--sans);pointer-events:none;
+  background:#11161c;color:#eef2f6;border:1px solid #2a323c;box-shadow:0 6px 20px rgba(0,0,0,.35);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s}
+body[data-theme="hacker"] #tip{background:#021108;color:var(--text);border-color:var(--line-2);font-family:var(--mono);box-shadow:var(--glow)}
+#tip.show{opacity:1;transform:none}
+.toasts{position:fixed;z-index:40;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;max-width:calc(100vw - 32px)}
+.toast{padding:10px 14px;border-radius:8px;background:var(--panel);border:1px solid var(--line-2);border-left:3px solid var(--accent);
+  box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:13px;animation:tin .2s ease-out}
+.toast.bad{border-left-color:var(--bad)}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}}
+dialog{border:1px solid var(--line-2);border-radius:12px;background:var(--panel);color:var(--text);padding:0;width:min(440px,calc(100vw - 32px));
+  box-shadow:0 20px 60px rgba(0,0,0,.45)}
+body[data-theme="hacker"] dialog{border-radius:var(--radius);box-shadow:var(--glow),0 20px 60px rgba(0,0,0,.6)}
+dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(2px)}
+dialog .dh{padding:16px 18px 6px;font-weight:700;font-size:15px}
+dialog .db{padding:4px 18px 14px;color:var(--muted)}
+dialog .df{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--line)}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:center;color:var(--text)}
+
+/* boot sequence (hacker only, skippable) */
+#boot{position:fixed;inset:0;z-index:60;background:#010402;color:var(--accent);font:13px/1.6 var(--mono);padding:28px;
+  white-space:pre-wrap;cursor:pointer;text-shadow:var(--glow)}
+#boot .skip{position:absolute;right:20px;bottom:16px;color:var(--muted);font-size:12px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body data-theme="hacker">
+<canvas id="matrix" aria-hidden="true"></canvas>
+<div id="boot" class="hidden" role="presentation"><span id="bootText"></span><span class="skip">click or press any key to skip</span></div>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>
+      <div>
+        <h1><span class="glitch" data-h="ROOMWATCH//01" data-n="Living Room Camera" data-text="ROOMWATCH//01">ROOMWATCH//01</span></h1>
+        <p data-h="secure node 192.168.1.170 · encrypted local link" data-n="On your home network · nothing is recorded">secure node</p>
+      </div>
+    </div>
+    <div class="head-right">
+      <span class="pill" id="pLink" data-tip="Whether this page can reach the camera"><span class="dot" id="dLink"></span><span id="tLink">Connecting…</span></span>
+      <span class="pill" id="pSignal" data-tip="Wi-Fi signal at the camera. Above −60 dBm is strong, below −75 is weak."><span class="dot" id="dSignal"></span><b id="tSignal">—</b></span>
+      <span class="pill" id="pBatt" data-tip="Battery voltage at the camera"><span class="dot" id="dBatt"></span><b id="tBatt">—</b></span>
+      <span class="pill h-only" data-tip="Local time on this computer"><b id="clock">--:--:--</b></span>
+      <button class="icon-btn" id="btnTheme" aria-label="Switch style" data-tip="Switch between movie style and normal style (T)">
+        <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18" fill="currentColor"/></svg>
+      </button>
+      <button class="icon-btn" id="btnKeys" aria-label="Keyboard shortcuts" data-tip="Keyboard shortcuts (?)">
+        <svg class="i" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="hFeed">
+      <div class="card-h">
+        <h2 id="hFeed" data-h="live intercept" data-n="Live view">Live view</h2>
+        <span class="meta" id="feedMeta">Feed closed</span>
+      </div>
+      <div class="stage" id="stage">
+        <img id="feed" alt="Live view of the living room">
+        <div class="hud h-only" id="hud" aria-hidden="true">
+          <span class="bracket b1"></span><span class="bracket b2"></span><span class="bracket b3"></span><span class="bracket b4"></span>
+          <span class="reticle"></span>
+          <span class="tl">CAM-01 · LIVING ROOM · 640×480</span>
+          <span class="tr rec">LIVE</span>
+          <span class="bl" id="hudTime">--</span>
+          <span class="br" id="hudSig">--</span>
+        </div>
+        <div class="overlay" id="overlay" role="button" tabindex="0" aria-label="Open the live view">
+          <canvas id="noise" width="160" height="120" aria-hidden="true"></canvas>
+          <div class="spinner hidden" id="spin"></div>
+          <div class="big" id="ovBig">Feed closed</div>
+          <div class="small" id="ovSmall">Click to open the live view</div>
+        </div>
+        <button class="fs-exit" id="fsExit"><svg class="i" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>Exit full screen</button>
+      </div>
+      <div class="progress" data-tip="Time left before the feed closes itself to save the battery"><i id="prog"></i></div>
+      <div class="toolbar" id="mainToolbar">
+        <button class="btn primary" id="btnFeed" data-tip="Turn the camera on and watch (Space)"><span id="btnFeedT">Open feed</span><kbd>Space</kbd></button>
+        <button class="btn" id="btnPhoto" disabled data-tip="Save the current picture to this computer (S)">
+          <svg class="i" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span data-h="Capture" data-n="Save photo">Save photo</span><kbd>S</kbd></button>
+        <button class="btn" id="btnFs" data-tip="Full screen with the plain picture, no effects (F)">
+          <svg class="i" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          <span>Full screen</span><kbd>F</kbd></button>
+        <button class="btn" id="btnOrient" aria-expanded="false" aria-controls="orientBar" data-tip="Rotate or mirror the picture to match how the camera is mounted (O)">
+          <svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M12 8v4l3 2"/></svg>
+          <span>Orientation</span><kbd>O</kbd></button>
+        <span class="spacer"></span>
+        <button class="btn" id="btnRefresh" data-tip="Reload the numbers and the activity log (R). Closes the live view first.">
+          <svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+          <span>Refresh</span><kbd>R</kbd></button>
+      </div>
+      <div class="orient-bar hidden" id="orientBar" role="group" aria-label="Picture orientation">
+        <span class="label">Picture</span>
+        <button class="btn sm" id="orLeft" data-tip="Rotate 90° to the left">
+          <svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Rotate left</button>
+        <button class="btn sm" id="orRight" data-tip="Rotate 90° to the right">
+          <svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Rotate right</button>
+        <button class="btn sm" id="orMirror" aria-pressed="false" data-tip="Swap left and right">
+          <svg class="i" viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M8 7l-5 5 5 5V7zM16 7l5 5-5 5V7z"/></svg>Mirror</button>
+        <button class="btn sm" id="orFlip" data-tip="Turn upside down (top and bottom swap)">
+          <svg class="i" viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M7 8l5-5 5 5H7zM7 16l5 5 5-5H7z"/></svg>Flip</button>
+        <button class="btn sm" id="orReset" data-tip="Back to the picture as the camera sends it">Reset</button>
+        <span class="state" id="orState">As is</span>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="hStats">
+      <div class="card-h"><h2 id="hStats" data-h="node telemetry" data-n="Overview">Overview</h2><span class="meta" id="updated">—</span></div>
+      <ul class="stats">
+        <li><span class="k">Battery <span class="help" data-tip="Measured every hour. Needs the two-resistor probe on pin D0; until then it shows “no probe”.">?</span></span>
+            <span class="v batt"><span id="sBatt">—</span><span class="bar" aria-hidden="true"><i id="sBattBar"></i></span></span></li>
+        <li><span class="k">Since last charge <span class="help" data-tip="Counted from the last “battery charged” entry, detected automatically or logged with the button below.">?</span></span><span class="v" id="sSince">—</span></li>
+        <li><span class="k">Estimated time left <span class="help" data-tip="Straight-line fit of the hourly voltage readings since the charge. Needs about half a day of readings.">?</span></span><span class="v" id="sLeft">—</span></li>
+        <li><span class="k">Viewing sessions</span><span class="v" id="sViews">—</span></li>
+        <li><span class="k">Time watched</span><span class="v" id="sWatch">—</span></li>
+        <li><span class="k">Snapshots <span class="help" data-tip="Single photos taken through /capture, e.g. from the Telegram button.">?</span></span><span class="v" id="sPhotos">—</span></li>
+        <li><span class="k">Time asleep <span class="help" data-tip="Share of time the chip spends in light sleep. Higher means longer battery life; 90%+ is the goal.">?</span></span><span class="v" id="sSleep">—</span></li>
+        <li><span class="k">Wi-Fi drops</span><span class="v" id="sDrops">—</span></li>
+        <li><span class="k">Restarts <span class="help" data-tip="Power-ups and restarts since the last charge, including firmware updates.">?</span></span><span class="v" id="sBoots">—</span></li>
+        <li><span class="k">Chip temperature <span class="help" data-tip="Built-in sensor of the processor. Idle is usually 35–50 °C; a live view stops by itself at 75 °C. The second number is the highest since the last restart.">?</span></span><span class="v" id="sTemp">—</span></li>
+        <li><span class="k">Up for</span><span class="v" id="sUptime">—</span></li>
+      </ul>
+      <p class="note" id="note"></p>
+    </section>
+  </div>
+
+  <div class="grid-2">
+    <section class="card" aria-labelledby="hChart">
+      <div class="card-h"><h2 id="hChart" data-h="power decay" data-n="Battery">Battery</h2><span class="meta">since last charge</span></div>
+      <div class="chart-wrap" id="chart"></div>
+    </section>
+    <section class="card" aria-labelledby="hLog">
+      <div class="card-h">
+        <h2 id="hLog" data-h="event log" data-n="Activity">Activity</h2>
+        <div class="chips" role="group" aria-label="Filter the activity">
+          <button class="chip" data-f="all" aria-pressed="true">All</button>
+          <button class="chip" data-f="views" aria-pressed="false">Views</button>
+          <button class="chip" data-f="alerts" aria-pressed="false">Alerts</button>
+          <button class="chip" data-f="power" aria-pressed="false" data-tip="Hourly battery readings">Power</button>
+        </div>
+      </div>
+      <ul class="log" id="log" aria-live="polite"></ul>
+    </section>
+  </div>
+
+  <footer>
+    <span id="fw">—</span>
+    <span class="ticker h-only" id="ticker" aria-hidden="true"></span>
+    <span class="n-only">Nothing is recorded · everything stays in this house</span>
+    <button class="btn" id="btnCharged" data-tip="Use after every full charge while there's no voltage probe, so “since last charge” starts now.">Log battery charged</button>
+  </footer>
+</div>
+
+<div id="tip" role="tooltip"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<dialog id="dlgConfirm">
+  <div class="dh" id="cfTitle"></div>
+  <div class="db" id="cfBody"></div>
+  <div class="df"><button class="btn" value="cancel" id="cfNo">Cancel</button><button class="btn primary" id="cfYes">Confirm</button></div>
+</dialog>
+<dialog id="dlgKeys">
+  <div class="dh">Keyboard shortcuts</div>
+  <div class="db"><div class="keys">
+    <kbd>Space</kbd><span>Open / close the live view</span>
+    <kbd>F</kbd><span>Full screen (plain picture)</span>
+    <kbd>O</kbd><span>Show orientation controls</span>
+    <kbd>S</kbd><span>Save a photo</span>
+    <kbd>R</kbd><span>Refresh numbers and activity</span>
+    <kbd>T</kbd><span>Switch style</span>
+    <kbd>Esc</kbd><span>Leave full screen / close dialogs</span>
+  </div></div>
+  <div class="df"><button class="btn primary" id="keysOk">Got it</button></div>
+</dialog>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const EV = {BOOT:1, VIEW:2, CAPTURE:3, BATTERY:4, WIFI_DOWN:5, CHARGED:6, UPDATE:7};
+const RESET = {1:"power on",3:"software restart",4:"crash",5:"watchdog",6:"watchdog",7:"watchdog",8:"wake from deep sleep",9:"low voltage (brownout)",11:"USB"};
+// Common 802.11 reason codes, so "Wi-Fi drop" entries explain themselves.
+const WIFI_REASON = {2:"authentication expired",3:"left the network",4:"inactivity",8:"left the network",15:"handshake timeout",
+  200:"router beacons lost",201:"router not found",202:"authentication failed",204:"handshake timeout"};
+const EMPTY_MV = 3400, FULL_MV = 4080;
+// LiPo resting-voltage curve (mV -> %). Top point calibrated 2026-11-18: this cell sits at
+// 4.08 V (meter on OUT+) right after a full charge with the camera running.
+const BATT_CURVE = [[3400,0],[3600,5],[3700,10],[3740,20],[3770,30],[3800,40],[3830,50],
+  [3870,60],[3910,70],[3960,80],[4020,90],[4080,100]];
+function battPct(mv) {
+  const c = BATT_CURVE;
+  if (mv <= c[0][0]) return 0;
+  for (let i = 1; i < c.length; i++)
+    if (mv <= c[i][0]) return c[i-1][1] + (mv - c[i-1][0]) / (c[i][0] - c[i-1][0]) * (c[i][1] - c[i-1][1]);
+  return 100;
+}
+const ICON = {
+  boot:'<path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/>',
+  view:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  photo:'<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  power:'<rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2"/>',
+  wifi:'<path d="M1 1l22 22M16.7 11.1A10.9 10.9 0 0 1 19 12.5M5 12.5a10.9 10.9 0 0 1 5.2-2.5M10.7 5A16 16 0 0 1 22.6 9M1.4 9a15.9 15.9 0 0 1 4.7-2.9M8.5 16.1a5 5 0 0 1 7 0M12 20h.01"/>',
+  charge:'<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
+  update:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/>'
+};
+const svgIcon = p => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
+let status = null, events = [], streamMax = 180, filter = "all";
+// Picture orientation: mirror (left-right swap) applied first, then a clockwise
+// rotation. Stored on the camera as the matching EXIF orientation, so single photos
+// (e.g. Telegram) come out turned the same way.
+const EXIF = {1:[0,0], 2:[1,0], 3:[0,180], 4:[1,180], 5:[1,270], 6:[0,90], 7:[1,90], 8:[0,270]};
+const orient = {m:0, r:0, pending:false};
+const toExif = () => +Object.keys(EXIF).find(k => EXIF[k][0] === orient.m && EXIF[k][1] === orient.r);
+const feed = {state:"closed", poll:null, timer:null, ends:0};
+
+// ---------- small helpers ----------
+const pad = n => String(n).padStart(2, "0");
+const store = {get(k){try{return localStorage.getItem(k)}catch{return null}}, set(k,v){try{localStorage.setItem(k,v)}catch{}}};
+function fmtDate(t, withYear) {
+  if (!t) return "time unknown";
+  const d = new Date(t * 1000);
+  return d.toLocaleString(undefined, {day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit", ...(withYear ? {year:"numeric"} : {})});
+}
+function fmtDur(s, short) {
+  s = Math.max(0, Math.round(s));
+  if (s < 60) return s + " s";
+  if (s < 3600) return Math.floor(s/60) + " min" + (short || s % 60 === 0 ? "" : " " + (s%60) + " s");
+  if (s < 86400) return Math.floor(s/3600) + " h" + (short ? "" : " " + Math.floor(s%3600/60) + " min");
+  return Math.floor(s/86400) + " d" + (short ? "" : " " + Math.floor(s%86400/3600) + " h");
+}
+function ago(t) {
+  if (!t) return "";
+  const s = Date.now()/1000 - t;
+  if (s < 45) return "just now";
+  if (s < 3600) return Math.round(s/60) + " min ago";
+  if (s < 86400) return Math.round(s/3600) + " h ago";
+  if (s < 86400*7) return Math.round(s/86400) + " d ago";
+  return fmtDate(t);
+}
+function toast(msg, bad) {
+  const el = document.createElement("div");
+  el.className = "toast" + (bad ? " bad" : ""); el.textContent = msg;
+  $("toasts").appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+const isHacker = () => document.body.dataset.theme === "hacker";
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ---------- tooltips ----------
+// One floating element for every [data-tip], kept inside the viewport. Works on
+// hover and on keyboard focus; touch devices get it on long-press.
+(() => {
+  const tip = $("tip"); let cur = null, timer = null;
+  function show(el) {
+    if (!el.dataset.tip) return;
+    cur = el; tip.textContent = el.dataset.tip; tip.classList.add("show");
+    const r = el.getBoundingClientRect(), t = tip.getBoundingClientRect();
+    let x = r.left + r.width/2 - t.width/2, y = r.top - t.height - 8;
+    if (y < 8) y = r.bottom + 8;
+    x = Math.max(8, Math.min(x, innerWidth - t.width - 8));
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function hide() { clearTimeout(timer); cur = null; tip.classList.remove("show"); }
+  document.addEventListener("pointerover", e => {
+    const el = e.target.closest("[data-tip]");
+    if (el === cur) return;
+    hide(); if (el && e.pointerType !== "touch") timer = setTimeout(() => show(el), 350);
+  });
+  document.addEventListener("pointerdown", hide);
+  document.addEventListener("focusin", e => { const el = e.target.closest("[data-tip]"); if (el && el.matches(":focus-visible")) show(el); });
+  document.addEventListener("focusout", hide);
+  document.addEventListener("scroll", hide, true);
+})();
+
+// ---------- theme ----------
+function applyTheme(theme) {
+  document.body.dataset.theme = theme;
+  document.querySelectorAll("[data-h]").forEach(el => {
+    el.textContent = theme === "hacker" ? el.dataset.h : el.dataset.n;
+    if (el.classList.contains("glitch")) el.dataset.text = el.textContent;
+  });
+  document.title = theme === "hacker" ? "ROOMWATCH//01" : "Living Room Camera";
+  store.set("cam.theme", theme);
+  if (status) render();
+  setOverlayText();
+}
+$("btnTheme").onclick = () => applyTheme(isHacker() ? "normal" : "hacker");
+
+// ---------- matrix rain + TV noise (hacker only, paused when hidden) ----------
+(() => {
+  const c = $("matrix"), x = c.getContext("2d"), glyphs = "01アイウエオカキクケコサシスセソ<>/{}#$%&";
+  let cols = [], fs = 16;
+  function size() { c.width = innerWidth; c.height = innerHeight; cols = Array(Math.ceil(c.width / fs)).fill(0).map(() => Math.random() * c.height / fs); }
+  size(); addEventListener("resize", size);
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  setInterval(() => {
+    if (reduce || document.hidden || !isHacker()) return;
+    x.fillStyle = "rgba(3,8,5,.12)"; x.fillRect(0, 0, c.width, c.height);
+    x.fillStyle = "#26ff7a"; x.font = fs + "px monospace";
+    cols.forEach((y, i) => {
+      x.fillText(glyphs[Math.random() * glyphs.length | 0], i * fs, y * fs);
+      cols[i] = y * fs > c.height && Math.random() > .975 ? 0 : y + 1;
+    });
+  }, 70);
+  const n = $("noise"), nx = n.getContext("2d"), img = nx.createImageData(n.width, n.height);
+  setInterval(() => {
+    if (document.hidden || !isHacker() || $("overlay").classList.contains("hidden")) return;
+    for (let i = 0; i < img.data.length; i += 4) { const v = Math.random() * 255 | 0; img.data[i] = img.data[i+1] = img.data[i+2] = v; img.data[i+3] = 255; }
+    nx.putImageData(img, 0, 0);
+  }, 80);
+})();
+
+// ---------- boot sequence (hacker, once per session, skippable) ----------
+async function bootSequence() {
+  if (!isHacker() || sessionStorageGet("cam.booted") || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  sessionStorageSet("cam.booted", "1");
+  const box = $("boot"), out = $("bootText"); let skip = false;
+  const stop = () => { skip = true; };
+  box.classList.remove("hidden");
+  box.addEventListener("click", stop); addEventListener("keydown", stop, {once:true});
+  const lines = ["> init uplink --node 192.168.1.170", "> handshake ............ OK", "> decrypting telemetry ... OK",
+    "> bypassing nothing (it's your own camera) ... OK", "> ACCESS GRANTED"];
+  for (const l of lines) { if (skip) break; out.textContent += l + "\n"; await sleep(170); }
+  if (!skip) await sleep(250);
+  box.classList.add("hidden");
+}
+function sessionStorageGet(k){try{return sessionStorage.getItem(k)}catch{return null}}
+function sessionStorageSet(k,v){try{sessionStorage.setItem(k,v)}catch{}}
+
+// ---------- live feed ----------
+// The camera's web server handles one request at a time and an open feed holds it,
+// so data loads before the feed opens and any data request closes the feed first.
+function setOverlayText() {
+  const h = isHacker(), s = feed.state;
+  const text = {
+    closed:     h ? ["Link idle", "Click to open the live intercept · camera is asleep"] : ["Live view is off", "Click to turn the camera on. It switches itself off after " + Math.round(streamMax/60) + " minutes."],
+    connecting: h ? ["Establishing link…", "Waking the camera"] : ["Connecting…", "Waking the camera, this takes a second"],
+    ended:      h ? ["Link terminated", "Auto-cutoff to save the battery · click to reconnect"] : ["Live view ended", "Stopped automatically to save the battery. Click to watch again."],
+    error:      h ? ["No carrier", "Node not responding · click to retry"] : ["Can't reach the camera", "Check that it's on and in Wi-Fi range, then click to try again."]
+  }[s];
+  if (!text) return;
+  $("ovBig").textContent = text[0]; $("ovSmall").textContent = text[1];
+}
+function setFeedState(s) {
+  feed.state = s;
+  const live = s === "live";
+  $("overlay").classList.toggle("hidden", live);
+  $("spin").classList.toggle("hidden", s !== "connecting");
+  $("btnPhoto").disabled = !live;
+  $("btnFeedT").textContent = live || s === "connecting" ? "Close feed" : "Open feed";
+  $("btnFeed").dataset.tip = live || s === "connecting" ? "Turn the camera off (Space)" : "Turn the camera on and watch (Space)";
+  $("feedMeta").textContent = {closed:"Feed closed", connecting:"Connecting…", live:"Live", ended:"Ended", error:"Unreachable"}[s];
+  if (!live) $("prog").style.width = "0";
+  setOverlayText();
+}
+function openFeed() {
+  const img = $("feed");
+  setFeedState("connecting");
+  let tries = 0;
+  clearInterval(feed.poll);
+  // Browsers differ on firing "load" for MJPEG, so also poll for the first frame.
+  feed.poll = setInterval(() => {
+    if (img.naturalWidth > 0) onLive();
+    else if (++tries > 50) closeFeed("error");
+  }, 300);
+  img.onload = onLive;
+  img.onerror = () => closeFeed("error");
+  img.src = "/stream?" + Date.now();
+}
+function onLive() {
+  clearInterval(feed.poll);
+  if (feed.state === "live") return;
+  feed.ends = Date.now() + streamMax * 1000;
+  setFeedState("live");
+  clearTimeout(feed.timer);
+  feed.timer = setTimeout(() => closeFeed("ended"), streamMax * 1000 + 1500);
+}
+function closeFeed(next) {
+  clearInterval(feed.poll); clearTimeout(feed.timer);
+  const img = $("feed");
+  img.onload = img.onerror = null;
+  img.removeAttribute("src");
+  setFeedState(next || "closed");
+  if (orient.pending) setTimeout(saveOrient, 400);
+}
+const feedBusy = () => feed.state === "live" || feed.state === "connecting";
+const toggleFeed = () => feedBusy() ? closeFeed() : openFeed();
+$("btnFeed").onclick = toggleFeed;
+$("overlay").onclick = () => { if (!feedBusy()) openFeed(); };
+$("overlay").onkeydown = e => { if ((e.key === "Enter" || e.key === " ") && !feedBusy()) { e.preventDefault(); openFeed(); } };
+
+function savePhoto() {
+  if (feed.state !== "live") return;
+  const img = $("feed"), c = document.createElement("canvas");
+  const iw = img.naturalWidth || 640, ih = img.naturalHeight || 480, turned = orient.r % 180 !== 0;
+  c.width = turned ? ih : iw; c.height = turned ? iw : ih;
+  const x = c.getContext("2d");
+  x.save();
+  x.translate(c.width / 2, c.height / 2);
+  x.rotate(orient.r * Math.PI / 180);
+  x.scale(orient.m ? -1 : 1, 1);
+  x.drawImage(img, -iw / 2, -ih / 2, iw, ih);
+  x.restore();
+  const d = new Date();
+  x.font = "14px sans-serif"; x.fillStyle = "rgba(0,0,0,.5)"; x.fillRect(0, c.height - 24, c.width, 24);
+  x.fillStyle = "#fff"; x.fillText("Living room · " + d.toLocaleString(), 8, c.height - 8);
+  c.toBlob(b => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(b);
+    a.download = `living-room_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.jpg`;
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast("Photo saved to your downloads");
+  }, "image/jpeg", 0.92);
+}
+$("btnPhoto").onclick = savePhoto;
+
+// ---------- orientation ----------
+function layoutFeed() {
+  const img = $("feed"), st = $("stage"), turned = orient.r % 180 !== 0;
+  const W = st.clientWidth, H = st.clientHeight;
+  Object.assign(img.style, {
+    inset: "auto", left: "50%", top: "50%",
+    width: (turned ? H : W) + "px", height: (turned ? W : H) + "px",
+    transform: `translate(-50%,-50%) rotate(${orient.r}deg) scaleX(${orient.m ? -1 : 1})`
+  });
+}
+function showOrient() {
+  layoutFeed();
+  $("orMirror").setAttribute("aria-pressed", !!orient.m);
+  const parts = [];
+  if (orient.r) parts.push(`rotated ${orient.r}°`);
+  if (orient.m) parts.push("mirrored");
+  $("orState").textContent = parts.length ? parts.join(" · ").replace(/^./, c => c.toUpperCase()) : "As is";
+}
+async function saveOrient() {
+  if (feedBusy()) { orient.pending = true; return; }  // the server is busy streaming
+  orient.pending = false;
+  try { await fetch("/api/orient?o=" + toExif(), {method:"POST"}); }
+  catch { orient.pending = true; }
+}
+function changeOrient(fn) { fn(); orient.r = ((orient.r % 360) + 360) % 360; showOrient(); saveOrient(); }
+$("orLeft").onclick = () => changeOrient(() => orient.r -= 90);
+$("orRight").onclick = () => changeOrient(() => orient.r += 90);
+$("orMirror").onclick = () => changeOrient(() => orient.m ^= 1);
+$("orFlip").onclick = () => changeOrient(() => { orient.m ^= 1; orient.r += 180; });  // vertical flip
+$("orReset").onclick = () => changeOrient(() => { orient.m = 0; orient.r = 0; });
+function toggleOrientBar() {
+  const bar = $("orientBar"), open = bar.classList.toggle("hidden") === false;
+  $("btnOrient").setAttribute("aria-expanded", open);
+  $("btnOrient").setAttribute("aria-pressed", open);
+}
+$("btnOrient").onclick = toggleOrientBar;
+addEventListener("resize", layoutFeed);
+document.addEventListener("fullscreenchange", () => requestAnimationFrame(layoutFeed));
+
+async function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await $("stage").requestFullscreen();
+  } catch { toast("Full screen isn't available here", true); }
+}
+$("btnFs").onclick = toggleFullscreen;
+$("fsExit").onclick = toggleFullscreen;
+$("feed").ondblclick = toggleFullscreen;
+
+// ---------- data ----------
+async function loadData() {
+  const s = await (await fetch("/api/status", {cache:"no-store"})).json();
+  const e = await (await fetch("/api/events", {cache:"no-store"})).json();
+  status = s; events = e; streamMax = s.stream_max || 180;
+  if (!orient.pending && EXIF[s.orient]) { [orient.m, orient.r] = EXIF[s.orient]; showOrient(); }
+  render();
+}
+async function refresh(silent) {
+  if (feedBusy()) { closeFeed(); await sleep(400); }
+  $("btnRefresh").disabled = true;
+  try { await loadData(); if (!silent) toast("Updated"); }
+  catch { setLink(false); toast("Can't reach the camera", true); }
+  finally { $("btnRefresh").disabled = false; }
+}
+$("btnRefresh").onclick = () => refresh();
+
+function setLink(ok) {
+  $("dLink").className = "dot " + (ok ? "ok" : "bad");
+  $("tLink").textContent = ok ? (isHacker() ? "LINK UP" : "Online") : (isHacker() ? "NO CARRIER" : "Offline");
+}
+
+function render() {
+  const s = status, h = isHacker();
+  setLink(true);
+  const now = s.time > 1700000000 ? s.time : Date.now() / 1000;
+  let from = 0;
+  for (let i = events.length - 1; i >= 0; i--) if (events[i][2] === EV.CHARGED) { from = i; break; }
+  const since = events.slice(from), of = t => since.filter(e => e[2] === t);
+  const startT = (since.find(e => e[1]) || [0, 0])[1];
+  const views = of(EV.VIEW), power = of(EV.BATTERY).filter(e => e[3] > 0 && e[1]), sleeps = of(EV.BATTERY).filter(e => e[4] > 0);
+
+  // header pills
+  const rssiQ = !s.rssi ? "" : s.rssi > -60 ? "ok" : s.rssi > -75 ? "warn" : "bad";
+  $("dSignal").className = "dot " + rssiQ;
+  $("tSignal").textContent = s.rssi ? `${s.rssi} dBm` : "—";
+  $("hudSig").textContent = s.rssi ? `SIG ${s.rssi}dBm · ${s.fw}` : "";
+  const pct = s.mv ? battPct(s.mv) : 0;
+  $("dBatt").className = "dot " + (!s.mv ? "" : pct > 30 ? "ok" : pct > 10 ? "warn" : "bad");
+  $("tBatt").textContent = s.mv ? `${(s.mv/1000).toFixed(2)} V` : "No probe";
+  $("pBatt").dataset.tip = s.mv ? `Battery ${(s.mv/1000).toFixed(2)} V, about ${Math.round(pct)}% (from voltage, ±5%)` : "Battery voltage isn't measured yet: the resistor probe on D0 isn't fitted.";
+
+  // overview
+  $("sBatt").textContent = s.mv ? `${(s.mv/1000).toFixed(2)} V · ${Math.round(pct)}%` : "No probe";
+  $("sBattBar").style.width = pct + "%";
+  $("sSince").textContent = startT ? fmtDur(now - startT) : "—";
+  $("sSince").parentElement.dataset.tip = startT ? "Since " + fmtDate(startT, true) : "";
+  $("sViews").textContent = views.length;
+  $("sWatch").textContent = fmtDur(views.reduce((a, e) => a + e[3], 0));
+  $("sPhotos").textContent = of(EV.CAPTURE).length;
+  const sleepAvg = sleeps.length ? sleeps.reduce((a, e) => a + e[4], 0) / sleeps.length / 10 : s.sleep;
+  $("sSleep").textContent = sleepAvg.toFixed(1) + "%";
+  $("sDrops").textContent = of(EV.WIFI_DOWN).length;
+  $("sBoots").textContent = of(EV.BOOT).length;
+  $("sUptime").textContent = fmtDur(s.uptime);
+  $("sTemp").textContent = s.temp ? `${Math.round(s.temp)} °C · peak ${Math.round(s.temp_peak)} °C` : "—";
+  $("updated").textContent = "Updated " + new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  $("fw").textContent = `Firmware ${s.fw} · ${s.events.toLocaleString()} log entries`;
+
+  let left = "—", note;
+  if (!s.mv) note = "Battery voltage isn't measured yet. Until the probe is fitted, press “Log battery charged” after each full charge.";
+  else if (power.length >= 6 && power[power.length-1][1] - power[0][1] > 12 * 3600) {
+    const n = power.length, xs = power.map(e => e[1]), ys = power.map(e => e[3]);
+    const mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
+    let num = 0, den = 0; for (let i = 0; i < n; i++) { num += (xs[i]-mx)*(ys[i]-my); den += (xs[i]-mx)**2; }
+    const slope = num / den;
+    left = slope < 0 ? "about " + fmtDur((s.mv - EMPTY_MV) / -slope, true) : "not dropping yet";
+    note = `Estimate from ${n} hourly readings. It gets more accurate over time.`;
+  } else note = "Collecting readings. The time-left estimate appears after about half a day.";
+  $("sLeft").textContent = left;
+  $("note").textContent = note;
+
+  drawChart(power);
+  drawLog();
+}
+
+// ---------- chart with hover tooltip ----------
+function drawChart(power) {
+  const box = $("chart");
+  if (power.length < 2) {
+    box.innerHTML = `<div class="empty"><b>${status.mv ? "Waiting for readings" : "No battery probe yet"}</b><span>${status.mv ? "A reading is taken every hour." : "Fit the two resistors on D0 to see the battery curve here."}</span></div>`;
+    return;
+  }
+  const W = 560, H = 230, L = 44, R = 12, T = 14, B = 28, h = isHacker();
+  const css = getComputedStyle(document.body), col = css.getPropertyValue("--accent").trim(), grid = css.getPropertyValue("--line").trim(),
+        muted = css.getPropertyValue("--muted").trim(), bad = css.getPropertyValue("--bad").trim();
+  const t0 = power[0][1], t1 = power[power.length-1][1];
+  const lo = Math.min(...power.map(e => e[3]), EMPTY_MV) - 50, hi = Math.max(...power.map(e => e[3]), FULL_MV) + 50;
+  const x = t => L + (t - t0) / Math.max(1, t1 - t0) * (W - L - R), y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+  let g = "";
+  for (let v = Math.ceil(lo / 200) * 200; v <= hi; v += 200)
+    g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="${grid}"/><text x="${L-6}" y="${y(v)+4}" fill="${muted}" font-size="10" text-anchor="end">${(v/1000).toFixed(1)}</text>`;
+  const pts = power.map(e => `${x(e[1]).toFixed(1)},${y(e[3]).toFixed(1)}`).join(" ");
+  const area = `${x(t0)},${y(lo)} ${pts} ${x(t1)},${y(lo)}`;
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Battery voltage since the last charge">
+    <defs><linearGradient id="ga" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".25"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+    ${g}
+    <line x1="${L}" x2="${W-R}" y1="${y(EMPTY_MV)}" y2="${y(EMPTY_MV)}" stroke="${bad}" stroke-dasharray="4 4"/>
+    <text x="${W-R}" y="${y(EMPTY_MV)-5}" fill="${bad}" font-size="10" text-anchor="end">${h ? "BLACKOUT" : "Empty"}</text>
+    <polygon points="${area}" fill="url(#ga)"/>
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" vector-effect="non-scaling-stroke"/>
+    <text x="${L}" y="${H-9}" fill="${muted}" font-size="10">${fmtDate(t0)}</text>
+    <text x="${W-R}" y="${H-9}" fill="${muted}" font-size="10" text-anchor="end">${fmtDate(t1)}</text>
+    <line id="cx" y1="${T}" y2="${H-B}" stroke="${muted}" stroke-dasharray="2 3" visibility="hidden"/>
+    <circle id="cd" r="4" fill="${col}" visibility="hidden"/>
+  </svg>`;
+  const svg = box.querySelector("svg"), tip = $("tip");
+  svg.onpointermove = e => {
+    const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * W;
+    let best = power[0]; for (const p of power) if (Math.abs(x(p[1]) - px) < Math.abs(x(best[1]) - px)) best = p;
+    const cx = x(best[1]), cy = y(best[3]);
+    svg.querySelector("#cx").setAttribute("x1", cx); svg.querySelector("#cx").setAttribute("x2", cx);
+    svg.querySelector("#cx").setAttribute("visibility", "visible");
+    const d = svg.querySelector("#cd"); d.setAttribute("cx", cx); d.setAttribute("cy", cy); d.setAttribute("visibility", "visible");
+    tip.textContent = `${(best[3]/1000).toFixed(2)} V · ${fmtDate(best[1])}`; tip.classList.add("show");
+    const sx = r.left + cx / W * r.width, sy = r.top + cy / H * r.height, t = tip.getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(sx - t.width/2, innerWidth - t.width - 8)) + "px"; tip.style.top = (sy - t.height - 12) + "px";
+  };
+  svg.onpointerleave = () => { svg.querySelector("#cx").setAttribute("visibility", "hidden"); svg.querySelector("#cd").setAttribute("visibility", "hidden"); tip.classList.remove("show"); };
+}
+
+// ---------- activity log ----------
+function describe(e) {
+  const [, , type, a, b] = e;
+  switch (type) {
+    case EV.BOOT: return {ic:"boot", t:"Camera started", d:RESET[a] || "reason " + a, c:(a === 4 || a === 9) ? "alert" : ""};
+    case EV.VIEW: return {ic:"view", t:"Live view", d:"watched " + fmtDur(a), c:"view"};
+    case EV.CAPTURE: return {ic:"photo", t:"Snapshot", d:Math.round(b/1024) + " KB", c:"view"};
+    case EV.BATTERY: return {ic:"power", t:"Battery reading", d:(a ? (a/1000).toFixed(2) + " V · " : "") + "asleep " + (b/10).toFixed(1) + "% of the hour", c:""};
+    case EV.WIFI_DOWN: return {ic:"wifi", t:"Wi-Fi dropped", d:WIFI_REASON[a] || "reason " + a, c:"alert"};
+    case EV.CHARGED: return {ic:"charge", t:"Battery charged", d:b ? "logged by hand" : "detected at " + (a/1000).toFixed(2) + " V", c:"good"};
+    case EV.UPDATE: return {ic:"update", t:"Firmware updated", d:Math.round(b/1024) + " KB", c:"good"};
+  }
+  return {ic:"boot", t:"Unknown entry", d:"type " + type, c:""};
+}
+const FILTERS = {
+  all: e => e[2] !== EV.BATTERY,
+  views: e => e[2] === EV.VIEW || e[2] === EV.CAPTURE,
+  alerts: e => e[2] === EV.WIFI_DOWN || (e[2] === EV.BOOT && (e[3] === 4 || e[3] === 9)),
+  power: e => e[2] === EV.BATTERY || e[2] === EV.CHARGED
+};
+function drawLog() {
+  const list = events.filter(FILTERS[filter]).slice(-150).reverse();
+  $("log").innerHTML = list.length ? list.map(e => {
+    const x = describe(e);
+    return `<li><span class="ic ${x.c}">${svgIcon(ICON[x.ic])}</span><span><div class="t">${x.t}</div><div class="d">${x.d}</div></span>`
+         + `<time datetime="${e[1] ? new Date(e[1]*1000).toISOString() : ""}" data-tip="${e[1] ? fmtDate(e[1], true) : "Logged before the clock was set"}">${e[1] ? ago(e[1]) : "—"}</time></li>`;
+  }).join("") : `<li><span></span><span class="d">Nothing here yet</span><span></span></li>`;
+}
+document.querySelectorAll(".chip").forEach(c => c.onclick = () => {
+  filter = c.dataset.f;
+  document.querySelectorAll(".chip").forEach(o => o.setAttribute("aria-pressed", o === c));
+  drawLog();
+});
+
+// ---------- dialogs ----------
+function confirmDialog(title, body, yes) {
+  const dlg = $("dlgConfirm");
+  $("cfTitle").textContent = title; $("cfBody").textContent = body; $("cfYes").textContent = yes;
+  return new Promise(resolve => {
+    $("cfYes").onclick = () => { dlg.close(); resolve(true); };
+    $("cfNo").onclick = () => { dlg.close(); resolve(false); };
+    dlg.oncancel = () => resolve(false);
+    dlg.showModal(); $("cfNo").focus();
+  });
+}
+$("btnCharged").onclick = async () => {
+  if (!await confirmDialog("Log a full charge?", "“Since last charge” and the battery curve will start counting from now. Use this right after the battery was charged to full.", "Log charge")) return;
+  if (feedBusy()) { closeFeed(); await sleep(400); }
+  try { await fetch("/api/charged", {method:"POST"}); await loadData(); toast("Charge logged"); }
+  catch { toast("Can't reach the camera", true); }
+};
+$("btnKeys").onclick = () => $("dlgKeys").showModal();
+$("keysOk").onclick = () => $("dlgKeys").close();
+
+// ---------- keyboard ----------
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || document.querySelector("dialog[open]") || !$("boot").classList.contains("hidden")) return;
+  if (e.target.closest("input,textarea,[contenteditable]")) return;
+  const k = e.key.toLowerCase();
+  if (k === " " && !e.target.closest("button")) { e.preventDefault(); toggleFeed(); }
+  else if (k === "f") toggleFullscreen();
+  else if (k === "o") toggleOrientBar();
+  else if (k === "s") savePhoto();
+  else if (k === "r") refresh();
+  else if (k === "t") applyTheme(isHacker() ? "normal" : "hacker");
+  else if (k === "?") $("dlgKeys").showModal();
+});
+
+// ---------- clock, countdown, ticker ----------
+setInterval(() => {
+  const d = new Date(), hms = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  $("clock").textContent = hms;
+  $("hudTime").textContent = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${hms}`;
+  if (feed.state === "live") {
+    const left = Math.max(0, (feed.ends - Date.now()) / 1000);
+    $("prog").style.width = (100 - left / streamMax * 100) + "%";
+    $("feedMeta").textContent = `Live · closes in ${Math.floor(left/60)}:${pad(Math.floor(left%60))}`;
+  }
+  if (isHacker() && status) {
+    const hex = n => (n >>> 0).toString(16).toUpperCase().padStart(8, "0");
+    $("ticker").textContent = `0x${hex(status.uptime)} ${hex(Date.now()/1000)} ${hex(status.events)} RSSI:${status.rssi} SLP:${status.sleep.toFixed(1)}`;
+  }
+}, 500);
+
+// ---------- start ----------
+document.querySelectorAll(".help").forEach(el => { el.tabIndex = 0; el.setAttribute("aria-label", el.dataset.tip); });
+applyTheme(store.get("cam.theme") === "normal" ? "normal" : "hacker");
+showOrient();
+(async () => {
+  await bootSequence();
+  try { await loadData(); } catch { setLink(false); toast("Can't reach the camera", true); }
+  openFeed();
+})();
+</script>
+</body>
+</html>

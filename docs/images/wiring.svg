@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 400" width="860" height="400" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">
+  <rect width="860" height="400" rx="12" fill="#ffffff"/>
+  <style>
+    .box{fill:#f4f6f8;stroke:#4a5560;stroke-width:1.5}
+    .t{fill:#1f2328;font-weight:600}
+    .s{fill:#57606a;font-size:12px}
+    .pad{fill:#1f2328;font-size:12px;font-family:Consolas,monospace}
+    .red{stroke:#d1242f;stroke-width:3;fill:none}
+    .blk{stroke:#24292f;stroke-width:3;fill:none}
+    .yel{stroke:#d4a72c;stroke-width:3;fill:none}
+    .dot{fill:#24292f}
+  </style>
+
+  <!-- battery -->
+  <rect class="box" x="30" y="120" width="150" height="150" rx="8"/>
+  <text class="t" x="105" y="185" text-anchor="middle">LiPo 1S</text>
+  <text class="s" x="105" y="205" text-anchor="middle">10,000 mAh</text>
+  <text class="s" x="105" y="222" text-anchor="middle">with protection</text>
+  <text class="pad" x="170" y="150" text-anchor="end">+</text>
+  <text class="pad" x="170" y="255" text-anchor="end">−</text>
+
+  <!-- charger -->
+  <rect class="box" x="250" y="100" width="150" height="190" rx="8"/>
+  <text class="t" x="325" y="85" text-anchor="middle">TP4056 USB-C</text>
+  <text class="s" x="325" y="305" text-anchor="middle">charger + protection</text>
+  <text class="pad" x="260" y="150">B+</text>
+  <text class="pad" x="260" y="255">B−</text>
+  <text class="pad" x="390" y="130" text-anchor="end">OUT+</text>
+  <text class="pad" x="390" y="275" text-anchor="end">OUT−</text>
+
+  <!-- switch -->
+  <rect class="box" x="460" y="95" width="90" height="70" rx="8"/>
+  <text class="t" x="505" y="125" text-anchor="middle">Switch</text>
+  <text class="s" x="505" y="145" text-anchor="middle">slide, SPDT</text>
+
+  <!-- divider -->
+  <rect class="box" x="585" y="190" width="26" height="44" rx="3"/>
+  <text class="s" x="575" y="217" text-anchor="end">220k</text>
+  <rect class="box" x="585" y="262" width="26" height="44" rx="3"/>
+  <text class="s" x="575" y="289" text-anchor="end">220k</text>
+
+  <!-- xiao -->
+  <rect class="box" x="680" y="100" width="150" height="190" rx="8"/>
+  <text class="t" x="755" y="85" text-anchor="middle">XIAO ESP32S3 Sense</text>
+  <text class="pad" x="690" y="140">BAT+</text>
+  <text class="pad" x="690" y="248">D0</text>
+  <text class="pad" x="690" y="345" display="none"/>
+  <text class="pad" x="690" y="275">BAT−</text>
+  <text class="s" x="755" y="305" text-anchor="middle">pads on the back</text>
+
+  <!-- wires -->
+  <path class="red" d="M180 146 H250"/>
+  <path class="blk" d="M180 251 H250"/>
+  <path class="red" d="M400 126 H430 V120 H460"/>
+  <path class="red" d="M550 140 H598 V136 H680"/>
+  <path class="red" d="M598 140 V190"/>
+  <path class="yel" d="M598 234 V248 H680"/>
+  <path class="yel" d="M598 248 V262"/>
+  <path class="blk" d="M400 271 H440 V340 H598 V306"/>
+  <path class="blk" d="M598 340 H650 V271 H680"/>
+  <circle class="dot" cx="598" cy="140" r="4"/>
+  <circle class="dot" cx="598" cy="248" r="4"/>
+  <circle class="dot" cx="598" cy="340" r="4"/>
+
+  <text class="s" x="505" y="370" text-anchor="middle">Divider halves the battery voltage for the ADC on D0 (GPIO1) · ~9.5 µA</text>
+  <text class="s" x="430" y="30" text-anchor="middle" font-size="13">Charge through the TP4056's USB-C with the switch OFF. Never feed the battery into the XIAO's 5V pin.</text>
+</svg>

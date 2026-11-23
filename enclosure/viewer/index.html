@@ -1,0 +1,1106 @@
+<title>קופסת מצלמת הסלון</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a full-height workbench - 3D view filling the space, a control rail on the
+   right (RTL start); on phones the rail drops under the view. */
+:root {
+  --bg: #eef0ee;          /* workshop bench, slight green-grey */
+  --panel: #f8f9f7;
+  --line: #d3d8d3;
+  --fg: #1f2622;
+  --muted: #5f6b64;
+  --accent: #c2571a;      /* PETG orange, the colour of the hinge parts */
+  --accent-soft: #c2571a1f;
+  --view: #e4e8e4;
+  --font: "IBM Plex Sans Hebrew", "Segoe UI", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171b19; --panel: #1e2321; --line: #313834; --fg: #e5ebe7; --muted: #95a39b;
+  --accent: #ec7a3a; --accent-soft: #ec7a3a26; --view: #121513; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171b19; --panel: #1e2321; --line: #313834; --fg: #e5ebe7; --muted: #95a39b;
+  --accent: #ec7a3a; --accent-soft: #ec7a3a26; --view: #121513; color-scheme: dark }
+
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font); overflow: hidden; }
+.app { height: 100%; display: grid; grid-template-columns: 330px minmax(0, 1fr); }
+.rail { background: var(--panel); border-inline-end: 1px solid var(--line); overflow-y: auto;
+  padding-block: 16px 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.stage { position: relative; min-width: 0; background: var(--view); }
+#c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+h1 { font-size: 18px; font-weight: 600; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13px; margin: 2px 0 0; }
+h2 { font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+
+.ctl { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; margin-bottom: 10px; }
+.ctl label { font-weight: 500; }
+.ctl output { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+.ctl input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+.checks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.checks label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); }
+
+.btns { display: flex; flex-wrap: wrap; gap: 6px; }
+button { font: 500 13px var(--font); color: var(--fg); background: transparent; border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+
+.parts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.parts li { display: grid; grid-template-columns: 18px 12px minmax(0, 1fr) auto; gap: 8px; align-items: center;
+  padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+.parts li:hover { background: var(--accent-soft); }
+.parts li.sel { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.sw { width: 12px; height: 12px; border-radius: 3px; border: 1px solid #0003; }
+.parts .solo { font-size: 12px; padding: 1px 7px; }
+.parts .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* overlays on the 3D view */
+.ov { position: absolute; z-index: 2; }
+.views { top: max(12px, env(safe-area-inset-top, 0px)); inset-inline-start: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+.views button { background: var(--panel); }
+.dims { bottom: 12px; inset-inline-start: 12px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 10px; font-size: 12px; color: var(--muted); max-width: calc(100% - 24px); }
+.dims b { color: var(--fg); font-weight: 500; }
+.info { top: 56px; inset-inline-start: 12px; width: min(320px, calc(100% - 24px)); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; box-shadow: 0 6px 20px #0002; }
+.info h3 { margin: 0 0 4px; font-size: 15px; display: flex; gap: 8px; align-items: center; }
+.info p { margin: 6px 0 0; font-size: 13px; }
+.info .close { position: absolute; top: 6px; inset-inline-end: 6px; border: 0; font-size: 16px; padding: 2px 8px; }
+.mlabel { background: var(--accent); color: #fff; font: 500 12px var(--mono); padding: 2px 7px; border-radius: 4px;
+  transform: translate(-50%, -50%); pointer-events: none; white-space: nowrap; }
+.hint { top: 56px; inset-inline-end: 12px; background: var(--accent); color: #fff; padding: 5px 10px; border-radius: 6px; font-size: 12px; }
+.loading { inset: 0; display: grid; place-items: center; color: var(--muted); }
+
+/* life-size calibration */
+.cal { inset: 0; background: color-mix(in srgb, var(--bg) 92%, transparent); display: grid; place-items: center; z-index: 5; padding: 16px; }
+.cal .box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; width: min(520px, 100%); display: flex; flex-direction: column; gap: 12px; }
+.cal .card { border: 2px dashed var(--accent); border-radius: 3mm; margin-inline: auto; display: grid; place-items: center; color: var(--muted); font-size: 12px; max-width: 100%; }
+.note { font-size: 12px; color: var(--muted); margin: 0; }
+
+@media (max-width: 760px) {
+  body { overflow: auto; }
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: 58vh auto; height: auto; }
+  .stage { order: -1; }
+  .rail { border-inline-end: 0; border-top: 1px solid var(--line); overflow: visible; }
+  .info { top: auto; bottom: 48px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app" dir="rtl">
+  <aside class="rail">
+    <div>
+      <h1>קופסת מצלמת הסלון</h1>
+      <p class="sub">מודל v10: מחופש לגלאי תנועה, אחרי סקירת תכנון · כל המידות במילימטרים · לחיצה על חלק מציגה פרטים</p>
+    </div>
+    <button class="guide-open" id="guideOpen">מדריך הלחמה בשלבים</button>
+
+    <section>
+      <h2>תנועה</h2>
+      <div class="ctl"><label for="tilt">המצלמה: למעלה / למטה</label><output id="tiltOut"></output>
+        <input id="tilt" type="range" min="-5" max="38" step="1" value="25"></div>
+      <div class="ctl"><label for="pan">המצלמה: החלקה לצדדים</label><output id="panOut"></output>
+        <input id="pan" type="range" min="-38" max="38" step="1" value="0"></div>
+      <div class="ctl"><label for="explode">פירוק השכבות</label><output id="explodeOut"></output>
+        <input id="explode" type="range" min="0" max="100" step="1" value="0"></div>
+      <p class="note">העגלה מחליקה על קשת, כך שההחלקה עצמה היא הסיבוב. המצלמה מוטה סביב קצה העדשה. שאר החריץ מתמלא באריחים; כשמזיזים את המחוון, האריחים מסתדרים מחדש, כמו שתעשה ביד.</p>
+    </section>
+
+    <section>
+      <h2>תצוגה</h2>
+      <div class="checks">
+        <label><input type="checkbox" id="lidGlass" checked> מכסה שקוף</label>
+        <label><input type="checkbox" id="towerGlass"> גוף המגדל שקוף</label>
+        <label><input type="checkbox" id="showRefs" checked> חפצים להשוואה</label>
+        <label><input type="checkbox" id="showGrid" checked> רשת 1 ס"מ</label>
+        <label><input type="checkbox" id="showEdges" checked> קווי מתאר</label>
+        <label><input type="checkbox" id="showWalls" checked> קיר ופינה</label>
+        <label><input type="checkbox" id="showFov"> שטח הראייה של המצלמה</label>
+      </div>
+    </section>
+
+    <section>
+      <h2>כלים</h2>
+      <div class="btns">
+        <button id="measureBtn" aria-pressed="false">מדידה בין שתי נקודות</button>
+        <button id="lifeBtn" aria-pressed="false">גודל אמיתי על המסך</button>
+        <button id="calBtn">כיול</button>
+        <button id="allBtn">הצג הכל</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>חלקים להדפסה</h2>
+      <ul class="parts" id="printList"></ul>
+    </section>
+    <section>
+      <h2>רכיבים בפנים (להמחשה)</h2>
+      <ul class="parts" id="dummyList"></ul>
+    </section>
+  </aside>
+
+  <main class="stage" id="stage">
+    <canvas id="c" aria-label="תצוגת תלת-ממד של הקופסה"></canvas>
+    <div class="ov views" id="views">
+      <button data-view="iso">איזומטרי</button>
+      <button data-view="front">חזית</button>
+      <button data-view="side">צד</button>
+      <button data-view="top">מלמעלה</button>
+    </div>
+    <div class="ov dims" id="dims"></div>
+    <div class="ov info" id="info" hidden>
+      <button class="close" id="infoClose" aria-label="סגור">×</button>
+      <h3><span class="sw" id="infoSw"></span><span id="infoName"></span></h3>
+      <div class="num" id="infoDims" style="font-size:12px;color:var(--muted);text-align:right"></div>
+      <p id="infoText"></p>
+    </div>
+    <div class="ov hint" id="hint" hidden></div>
+    <div class="ov mlabel" id="mlabel" hidden></div>
+    <div class="ov loading" id="loading">טוען את המודל…</div>
+    <div class="ov cal" id="cal" hidden>
+      <div class="box">
+        <h2 style="margin:0">כיול גודל אמיתי</h2>
+        <p class="note" style="font-size:13px;color:var(--fg)">הצמד כרטיס אשראי (או כל כרטיס בגודל הזה, כמו תעודת זהות או רב-קו) למסך, והזז את המחוון עד שהמסגרת בדיוק בגודל שלו.</p>
+        <div class="card" id="calCard">85.6 × 54 מ"מ</div>
+        <div class="ctl"><label for="calRange">גודל</label><output id="calOut"></output>
+          <input id="calRange" type="range" min="2" max="8" step="0.01"></div>
+        <div class="btns"><button id="calDone" aria-pressed="true">שמור</button><button id="calCancel">ביטול</button></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== Soldering guide (separate screen over the 3D viewer). Kept in its own block so
+     the 3D code is untouched; build_local.py packs it like the rest of index.html. ===== -->
+<style>
+.guide-open { width: 100%; font-size: 14px; padding: 9px 12px; border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.guide { position: fixed; inset: 0; z-index: 30; background: var(--bg); display: grid; grid-template-columns: clamp(360px, 30vw, 520px) minmax(0, 1fr); grid-template-rows: 100%; --casing: #ffffff; --hl: var(--accent); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .guide { --casing: #9aa59f; } }
+:root[data-theme="dark"] .guide { --casing: #9aa59f; }
+.g-side { background: var(--panel); border-inline-end: 1px solid var(--line); overflow-y: auto; padding: 16px 18px 24px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.g-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.g-top h1 { font-size: 17px; }
+.g-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.g-chips button { width: 30px; height: 30px; padding: 0; border-radius: 50%; font: 500 12px var(--mono); }
+.g-chips button.done { background: #2e8b57; border-color: #2e8b57; color: #fff; }
+.g-chips button[aria-current="step"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+.g-step { font-size: 15px; line-height: 1.55; }
+@media (min-width: 1700px) { .g-step { font-size: 16px; } }
+.g-step h2 { font-size: 18px; letter-spacing: 0; color: var(--fg); margin: 0 0 4px; }
+.g-step .k { font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--accent); margin: 14px 0 4px; }
+.g-step p { margin: 4px 0; }
+.g-step ol, .g-step ul { margin: 4px 0; padding-inline-start: 20px; }
+.g-step li { margin: 5px 0; }
+.g-warn { border: 1px solid #c0392b66; background: #c0392b14; border-radius: 8px; padding: 8px 10px; margin-top: 10px; }
+.g-check { border: 1px solid #2e8b5766; background: #2e8b5714; border-radius: 8px; padding: 8px 10px; margin-top: 10px; }
+.g-step table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 4px; }
+.g-step td, .g-step th { border: 1px solid var(--line); padding: 4px 6px; text-align: right; }
+.g-nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); padding: 12px 0 4px; margin-top: auto; position: sticky; bottom: -24px; background: var(--panel); }
+.g-nav .grow { flex: 1; }
+.g-done { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; font-weight: 500; }
+.g-main { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--view); display: grid; grid-template-rows: minmax(0, 1fr) auto; }
+.g-fig { position: relative; min-height: 0; }
+.g-fig svg { position: absolute; inset: 12px; width: calc(100% - 24px); height: calc(100% - 24px); display: block; }
+.g-cap { font-size: 12px; color: var(--muted); padding: 6px 14px 10px; }
+.g-svg text { font-family: var(--font); }
+.g-svg .lbl { fill: var(--fg); font-size: 15px; font-weight: 600; }
+.g-svg .sm { fill: var(--muted); font-size: 13px; }
+.g-svg .on-board { fill: #fff; font-size: 10px; font-family: var(--mono); }
+.g-svg .tag rect { fill: var(--accent); }
+.g-svg .tag text { fill: #fff; font-size: 13px; font-weight: 600; }
+.g-svg .ring { fill: none; stroke: var(--hl); stroke-width: 3; transform-box: fill-box; transform-origin: center; animation: gpulse 1.4s ease-in-out infinite; }
+.g-svg .halo { stroke: var(--hl); opacity: .35; fill: none; stroke-linecap: round; stroke-linejoin: round; animation: gglow 1.4s ease-in-out infinite; }
+.g-svg .dim { opacity: .28; }
+@keyframes gpulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.35); opacity: .45; } }
+@keyframes gglow { 0%, 100% { opacity: .45; } 50% { opacity: .15; } }
+@media (prefers-reduced-motion: reduce) { .g-svg .ring, .g-svg .halo { animation: none; } }
+@media (max-width: 700px) {
+  .guide { grid-template-columns: minmax(0, 1fr); grid-template-rows: 46vh minmax(0, 1fr); }
+  .g-main { order: -1; }
+  .g-side { border-inline-end: 0; border-top: 1px solid var(--line); }
+}
+</style>
+
+<div class="guide" id="guide" dir="rtl" hidden>
+  <aside class="g-side">
+    <div class="g-top">
+      <h1>מדריך הלחמה בשלבים</h1>
+      <button id="guideClose">חזרה לקופסה</button>
+    </div>
+    <div class="g-chips" id="gChips" aria-label="שלבים"></div>
+    <div class="g-step" id="gStep"></div>
+    <div class="g-nav">
+      <button id="gPrev">→ הקודם</button>
+      <label class="g-done"><input type="checkbox" id="gDone"> סיימתי והבדיקה עברה</label>
+      <span class="grow"></span>
+      <button id="gNext">הבא ←</button>
+    </div>
+  </aside>
+  <main class="g-main">
+    <div class="g-fig"><svg class="g-svg" id="gSvg" style="direction:ltr" viewBox="0 0 1000 720" role="img" aria-label="שרטוט החיבורים בשלב הנוכחי"></svg></div>
+    <div class="g-cap">השרטוט מראה מה מתחבר למה. המרחקים והגדלים בו לא אמיתיים. כתום מהבהב = מה שעושים עכשיו.</div>
+  </main>
+</div>
+
+<script>
+(() => {
+  // ---------- geometry (schematic, viewBox 1000 x 720) ----------
+  const P = {
+    xBatP: [870, 164], xBatN: [870, 136], xD0: [910, 80], xD1: [910, 108],
+    tOutP: [250, 318], tBP: [250, 348], tBN: [250, 392], tOutN: [250, 422], tUsb: [64, 370],
+    tabP: [318, 348], tabN: [318, 392],
+    swU: [804, 400], swM: [837, 400], swOn: [870, 400],
+    r1a: [930, 470], j: [930, 580], r2b: [930, 680],
+  };
+  // wire id -> drawing. events: [step, "full" | "clip"]; stubFrom: step from which a loose end shows.
+  const W = {
+    xR: { c: "#d4302b", w: 5, stubFrom: 0, stub: [[870, 164], [870, 250]], full: [[870, 164], [870, 400]], ev: [[4, "full"]] },
+    xB: { c: "#222", w: 5, stubFrom: 0, stub: [[870, 136], [870, 116], [806, 116], [806, 95]],
+          full: [[870, 136], [870, 116], [806, 116], [806, 20], [30, 20], [30, 456], [244, 456], [244, 430]], ev: [[5, "full"]] },
+    tR: { c: "#d4302b", w: 5, stubFrom: 0, stub: [[250, 348], [286, 348]], full: [[250, 348], [318, 348]], ev: [[7, "clip"], [9, "full"]] },
+    tB: { c: "#222", w: 5, stubFrom: 0, stub: [[250, 392], [286, 392]], full: [[250, 392], [318, 392]], ev: [[7, "clip"], [9, "full"]] },
+    oP: { c: "#d4302b", w: 5, full: [[250, 318], [290, 318], [290, 300], [837, 300], [837, 400]], ev: [[3, "full"]] },
+    l1: { c: "#9aa3a8", w: 3, full: [[870, 400], [930, 400], [930, 470]], ev: [[4, "full"]] },
+    l2: { c: "#9aa3a8", w: 3, full: [[930, 680], [930, 692], [256, 692], [256, 430]], ev: [[5, "full"]] },
+    d0: { c: "#e0a800", w: 5, stubFrom: 1, stub: [[930, 580], [962, 580], [962, 535]],
+          full: [[930, 580], [962, 580], [962, 80], [910, 80]], ev: [[6, "full"]] },
+  };
+
+  // ---------- steps ----------
+  const S = [
+    { t: "לפני שמתחילים", hl: [], tags: [],
+      html: `<p>בסוף המדריך כל החשמל של המצלמה מחובר ובדוק, ומוכן להכנסה לקופסה. כל שלב קטן, ובסוף כל שלב יש בדיקה. <b>לא ממשיכים לשלב הבא לפני שהבדיקה עברה.</b></p>
+      <div class="k">מה צריך</div>
+      <ul><li>מלחם ובדיל, מולטימטר, חותכן קטן</li>
+      <li>חוט דק רב-גידי: אדום, שחור, וצבע שלישי (צהוב או לבן) לחוט D0</li>
+      <li>2 נגדים 220k, המתג, המטען (TP4056)</li>
+      <li>סלוטייפ חשמלאים או שרוולים מתכווצים, ובסוף אקדח דבק חם</li></ul>
+      <div class="k">מה כבר קיים (בשרטוט)</div>
+      <ul><li>ב-XIAO: חוט אדום על BAT+ וחוט שחור על BAT−</li>
+      <li>במטען: חוטי האימון, אדום על B+ ושחור על B−</li></ul>
+      <div class="k">עכשיו</div>
+      <ol><li>מנתקים את התפסנים מהסוללה. כל ההלחמות בשלבים 1 עד 6 נעשות כשהסוללה לא מחוברת לכלום.</li>
+      <li>מניחים את הסוללה בצד, כשהמגעים שלה לא נוגעים בשום מתכת.</li>
+      <li>המצלמה יכולה להישאר מחוברת ל-XIAO. אין בעיה להלחים כל עוד אין חשמל.</li></ol>
+      <div class="g-warn"><b>בטיחות:</b> סוללה של 10,000mAh נותנת זרם עצום. אם + ו־− נוגעים זה בזה (דרך חוט, פינצטה או טיפת בדיל), החוט מתחמם תוך שניות ויכול להישרף. לכן אף פעם לא מצמידים את שני הקצוות החשופים.</div>
+      <div class="g-check"><b>בדיקה:</b> התפסנים מנותקים והסוללה בצד.</div>` },
+
+    { t: "מחלק המתח (שני הנגדים)", hl: [P.j, [930, 505], [930, 645]], tags: [[700, 585, "צומת + חוט D0"]], focus: "chain",
+      html: `<p><b>למה:</b> ה-ESP32 לא יכול למדוד ישירות מתח של 4.2V. שני נגדים שווים בטור חוצים את המתח לחצי (4.2V הופכים ל-2.1V), והקוד מכפיל בחזרה. 220k כדי שיעבור דרכם זרם זעיר שלא מרוקן את הסוללה.</p>
+      <div class="k">מה צריך</div>
+      <p>2 נגדים 220k (תכלת, פסים: אדום, אדום, שחור, כתום, חום) וחוט צהוב או לבן באורך 22 ס"מ.</p>
+      <div class="k">עושים</div>
+      <ol><li>מקלפים 5 מ"מ בכל קצה של החוט.</li>
+      <li>מניחים את שני הנגדים בקו ישר, קצה מול קצה, וכורכים יחד: רגל אחת מכל נגד וקצה אחד של החוט.</li>
+      <li>מלחימים את הצומת וגוזרים את מה שבולט ממנו. את שתי הרגליים החיצוניות משאירים ארוכות.</li>
+      <li>מבודדים את הצומת בשרוול מתכווץ או בסלוטייפ.</li></ol>
+      <p>מעכשיו הנגד שיתחבר למתג נקרא R1, והשני R2. הם זהים, אז לא משנה מי זה מי.</p>
+      <div class="g-check"><b>בדיקה</b> (מולטימטר על 2000k, בלי להחזיק את שתי הרגליים באצבעות):
+      <table><tr><th>בין</th><th>צריך להראות</th></tr>
+      <tr><td>שתי הרגליים החיצוניות</td><td>בערך 440</td></tr>
+      <tr><td>קצה החוט לכל אחת מהרגליים החיצוניות</td><td>בערך 220</td></tr></table></div>` },
+
+    { t: "בדיקת המתג (בלי הלחמה)", hl: [P.swU, P.swM, P.swOn], tags: [[700, 365, "איזו רגל היא ON?"]],
+      html: `<p><b>למה:</b> למתג 3 רגליים. האמצעית מתחברת לאחת מרגלי הצד, לפי מצב הידית. צריך לדעת איזו רגל היא "דלוק".</p>
+      <div class="k">עושים</div>
+      <ol><li>מעבירים את בורר המולטימטר ל-200Ω.</li>
+      <li>מזיזים את הידית לצד אחד, ומודדים בין הרגל האמצעית לכל אחת מרגלי הצד.</li>
+      <li>הרגל שמראה בערך 0 מחוברת עכשיו לאמצעית. זו רגל ה-ON, ומצב הידית הזה הוא "דלוק".</li>
+      <li>מסמנים בטוש את רגל ה-ON, ושמים נקודה על גוף המתג בצד של "דלוק".</li></ol>
+      <p>הרגל השלישית לא בשימוש, ולא מלחימים אליה כלום. בשרטוט רגל ה-ON מצוירת מימין, אבל אצלך קובעת המדידה.</p>
+      <div class="g-check"><b>בדיקה:</b> מזיזים את הידית לצד השני. עכשיו בין הרגל האמצעית לרגל ה-ON מופיע 1 (לא מחובר).</div>` },
+
+    { t: "מהמטען למתג: OUT+ לרגל האמצעית", hl: [P.tOutP, P.swM], tags: [[330, 268, "חוט אדום 6 ס\"מ"]],
+      html: `<div class="k">מה צריך</div><p>חוט אדום באורך 6 ס"מ.</p>
+      <div class="k">עושים</div>
+      <ol><li>מקלפים 3 מ"מ בכל קצה, ומצפים כל קצה בבדיל: מחממים את החוט ונוגעים בו עם הבדיל.</li>
+      <li>OUT+ הוא המגע העליון בשורה של המטען, מעל B+ (זה שעליו חוט האימון האדום). מלחימים אליו קצה אחד.</li>
+      <li>את הקצה השני מלחימים לרגל האמצעית של המתג.</li></ol>
+      <div class="g-warn">המגעים של המטען קרובים זה לזה. צריך לוודא שהבדיל לא מגשר בין שני מגעים.</div>
+      <div class="g-check"><b>בדיקה</b> (200Ω): בין OUT+ לרגל האמצעית מופיע בערך 0.</div>` },
+
+    { t: "רגל ON: החוט האדום של ה-XIAO ו-R1", hl: [P.swOn, P.xBatP], tags: [[700, 440, "שני חוטים על אותה רגל"]],
+      html: `<div class="k">עושים</div>
+      <ol><li>בקופסה, החוט האדום שיוצא מ-BAT+ של ה-XIAO צריך להגיע מראש המגדל עד המתג למטה, כלומר <b>כ-22 ס"מ</b>. אם הוא ארוך יותר, מקצרים ל-22 ס"מ. אם הוא קצר מ-20 ס"מ, עוצרים ומספרים לי.</li>
+      <li>מקלפים 3 מ"מ ומצפים בבדיל.</li>
+      <li>כורכים יחד על רגל ה-ON (זו שסימנת) את החוט האדום ואת הרגל החיצונית של R1, ומלחימים.</li>
+      <li>גוזרים את מה שבולט מעבר לרגל.</li></ol>
+      <div class="g-warn">רגלי המתג צפופות מאוד. אסור שהבדיל ייגע ברגל האמצעית.</div>
+      <div class="g-check"><b>בדיקה</b> (200Ω), בין OUT+ של המטען לבין BAT+ של ה-XIAO:
+      <ul><li>ידית על "דלוק": בערך 0.</li><li>ידית על "כבוי": 1.</li></ul></div>` },
+
+    { t: "OUT− של המטען: החוט השחור של ה-XIAO ו-R2", hl: [P.tOutN, P.xBatN], tags: [[300, 450, "OUT− ולא B−"]],
+      html: `<div class="k">עושים</div>
+      <ol><li>את החוט השחור שיוצא מ-BAT− של ה-XIAO מקצרים גם ל-22 ס"מ, מקלפים ומצפים.</li>
+      <li>OUT− הוא המגע התחתון בשורה של המטען, מתחת ל-B− (זה שעליו חוט האימון השחור).</li>
+      <li>מלחימים אל OUT− את החוט השחור ואת הרגל החיצונית של R2 ביחד.</li></ol>
+      <div class="g-warn"><b>דווקא OUT− ולא B−.</b> ההגנה של הסוללה, מפני פריקה עמוקה ומפני קצר, יושבת בין B− ל-OUT−. היא שומרת על הסוללה רק כשהחיבור עובר דרך OUT−.</div>
+      <div class="g-check"><b>בדיקה</b> (200Ω):
+      <ul><li>בין BAT− של ה-XIAO לבין OUT− של המטען: בערך 0.</li>
+      <li>ידית על "כבוי": בין OUT+ ל-OUT− לא מופיע 0.</li></ul></div>` },
+
+    { t: "חוט D0 ל-XIAO", hl: [P.xD0], tags: [[560, 100, "D0: נכנס מהצד של לוח המצלמה"]],
+      html: `<div class="k">עושים</div>
+      <ol><li>D0 הוא החור הראשון בטור, הכי קרוב ל-USB. בשרטוט רואים אותו מהצד של מגעי הסוללה.</li>
+      <li>החוט הצהוב צריך להיות באורך 22 ס"מ, כמו האחרים. מקלפים 2 מ"מ ומצפים.</li>
+      <li>הופכים את ה-XIAO לצד של לוח המצלמה, ומכניסים את קצה החוט לחור D0 <b>מהצד הזה</b>. החוט צריך לצאת ישר החוצה, בניצב ללוח, ולא הצידה.</li>
+      <li>מלחימים מהצד של לוח המצלמה. בצד של מגעי הסוללה גוזרים את מה שיצא מהחור, צמוד ללוח.</li></ol>
+      <p><b>למה ככה:</b> בקופסה, שתי השפות של ה-XIAO נכנסות למסילות שבלוח הגב, ובין הגב שלו ללוח הגב יש רק כ-2 מ"מ. חוט שיוצא הצידה מהשפה, או ששוכב על הגב, לא ייתן ללוח להיכנס. אם משהו בצד של לוח המצלמה מסתיר את החור, עוצרים ושולחים לי תמונה.</p>
+      <div class="g-warn">החורים צפופים. אסור שהבדיל ייגע ב-D1, החור שמתחת.</div>
+      <div class="g-check"><b>בדיקה</b> (200Ω): בין D0 ל-D1 מופיע 1 (לא מחובר).</div>` },
+
+    { t: "בדיקה ראשונה, עם תפסנים", hl: [P.tabP, P.tabN, P.swOn], tags: [[360, 268, "תפסנים"]],
+      html: `<div class="k">עושים</div>
+      <ol><li>מעבירים את הידית ל"כבוי".</li>
+      <li>תפסן אחד מחבר את מגע ה־− של הסוללה לקצה חוט האימון השחור (B−). תפסן שני מחבר את מגע ה־+ לקצה החוט האדום (B+). התפסנים לא נוגעים זה בזה.</li>
+      <li>מעבירים את המולטימטר ל-20V (DC) ומודדים בין OUT+ ל-OUT−. צריך להופיע מתח הסוללה, בערך 3.7 עד 4.2.<br>
+      אם מופיע 0, מחברים לרגע כבל USB-C למטען. זה "מעיר" את ההגנה, וזה קורה רק בחיבור הראשון.</li>
+      <li>מעבירים את הידית ל"דלוק", מחכים 10 שניות ופותחים את הדשבורד: <span class="num">http://192.168.1.170/</span></li>
+      <li>משווים בין הסוללה בדשבורד (Battery) לבין המולטימטר על מגעי הסוללה. ההפרש צריך להיות קטן, עד בערך 0.1V.</li>
+      <li>מעבירים את הידית ל"כבוי". הדף מפסיק לענות.</li></ol>
+      <div class="g-check"><b>בדיקה:</b> המצלמה נדלקת ונכבית מהמתג, והדשבורד מראה מתח של סוללה, ולא "no probe".</div>` },
+
+    { t: "בדיקת טעינה", hl: [P.tUsb], tags: [[60, 470, "מטען טלפון"]],
+      html: `<div class="k">עושים</div>
+      <ol><li>התפסנים נשארים מחוברים. מחברים מטען טלפון רגיל לחיבור ה-USB-C של המטען (TP4056).</li>
+      <li>נורה אדומה אומרת שהוא טוען. נורה כחולה (או ירוקה) אומרת שהסוללה מלאה.</li>
+      <li>המטען מתחמם בזמן טעינה, וזה תקין. טעינה מלאה מסוללה ריקה לוקחת בערך 10 עד 12 שעות.</li></ol>
+      <div class="g-warn">בטעינה הראשונה תהיה בבית ובדוק מדי פעם. אם הסוללה מתנפחת או חמה מאוד ביד, מנתקים מיד.</div>
+      <div class="g-check"><b>בדיקה:</b> הנורה האדומה דולקת, ובדשבורד המתח עולה לאט.</div>` },
+
+    { t: "חיבור קבוע לסוללה", hl: [P.tabP, P.tabN], tags: [[360, 268, "הלחמה מהירה"]],
+      html: `<p>התפסנים היו רק לבדיקה. בתוך הקופסה צריך חיבור מולחם.</p>
+      <div class="k">עושים</div>
+      <ol><li>מעבירים את הידית ל"כבוי", מנתקים את ה-USB ומורידים את התפסנים.</li>
+      <li>מכסים בסלוטייפ את מגע ה־− של הסוללה. עובדים כל פעם על מגע אחד.</li>
+      <li>מגעי הסוללה עשויים ניקל, ובדיל נתפס עליהם קשה. משייפים את המגע קלות, עם נייר לטש או גירוד עם סכין, עד שהוא מבריק.</li>
+      <li>מקצרים את חוטי האימון של המטען לבערך 5 ס"מ. בקופסה המגעים של הסוללה נמצאים ממש מעל המטען.</li>
+      <li>מצפים בבדיל את קצה החוט האדום (B+).</li>
+      <li>מניחים את החוט על מגע ה־+ ונוגעים עם המלחם <b>2 עד 3 שניות לכל היותר</b>. מרימים את המלחם ומחזיקים את החוט בלי לזוז, עד שהבדיל מתקשה.</li>
+      <li>מבודדים את המגע המולחם בסלוטייפ, מורידים את הסלוטייפ מה־−, וחוזרים על אותם שלבים עם החוט השחור (B−).</li></ol>
+      <div class="g-warn">חום מזיק לסוללה. אם הבדיל לא נתפס תוך 3 שניות, מפסיקים, מחכים חצי דקה ומנסים שוב. אסור להשאיר את המלחם הרבה זמן על המגע, ואסור לגעת עם המלחם בגוף הסוללה. אם זה לא מצליח, עוצרים ומספרים לי: יש דרכים אחרות.</div>
+      <div class="g-check"><b>בדיקה:</b> חוזרים על הבדיקה משלב 7. בידית על "דלוק" הדשבורד עובד ומראה מתח.</div>` },
+
+    { t: "בידוד וסידור", hl: [P.swOn, P.swM, P.tOutP, P.tOutN, P.j, P.tabP, P.tabN, P.xD0], tags: [],
+      html: `<div class="k">עושים</div>
+      <ol><li>מבודדים כל מקום חשוף: רגלי המתג, המגעים של המטען, הצומת והרגליים של הנגדים.</li>
+      <li>טיפת דבק חם על רגלי המתג ועל המגעים של המטען מבודדת, וגם מחזיקה את החוטים כך שלא ייתלשו. לא שמים דבק על השבבים של המטען ולא על פתח ה-USB-C.</li>
+      <li>עוטפים את שני הנגדים בסלוטייפ לכל אורכם.</li>
+      <li>את הרגל השלישית של המתג, שלא בשימוש, כופפים הצידה ומכסים.</li>
+      <li>בגב ה-XIAO בודקים ששום דבר לא בולט יותר מ-2 מ"מ.</li></ol>
+      <div class="g-check"><b>בדיקה אחרונה:</b> בידית על "דלוק" הכל עובד. צלם ושלח לי תמונה של הכל, ואז עוברים להרכבה בקופסה.</div>` },
+  ];
+
+  // ---------- svg helpers ----------
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("gSvg");
+  const el = (tag, attrs = {}, parent = svg, text) => {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    if (text !== undefined) e.textContent = text;
+    parent.appendChild(e);
+    return e;
+  };
+  const pts = a => a.map(p => p.join(",")).join(" ");
+  const line = (g, a, stroke, w, extra = {}) => el("polyline", { points: pts(a), fill: "none", stroke, "stroke-width": w, "stroke-linecap": "round", "stroke-linejoin": "round", ...extra }, g);
+
+  function drawWire(g, wire, path, mode, current, loose) {
+    if (current) el("polyline", { points: pts(path), class: "halo", "stroke-width": wire.w + 14 }, g);
+    line(g, path, "var(--casing)", wire.w + 4);
+    line(g, path, wire.c, wire.w, mode === "clip" ? { "stroke-dasharray": "10 7" } : {});
+    if (loose) { const e = path[path.length - 1]; el("circle", { cx: e[0], cy: e[1], r: 4, fill: "#c98a3c" }, g); }
+  }
+
+  function battery(g) {
+    el("rect", { x: 330, y: 325, width: 310, height: 270, rx: 12, fill: "#c9cdd1", stroke: "#e2b23a", "stroke-width": 6 }, g);
+    el("text", { x: 485, y: 450, "text-anchor": "middle", class: "lbl", fill: "#333", style: "fill:#2b2f33" }, g, "סוללה");
+    el("text", { x: 485, y: 475, "text-anchor": "middle", style: "fill:#4a4f55;font-size:13px", direction: "ltr" }, g, "LiPo 10,000mAh 3.7V");
+    for (const [y, s, c] of [[348, "+", "#d4302b"], [392, "−", "#222"]]) {
+      el("rect", { x: 304, y: y - 11, width: 30, height: 22, rx: 2, fill: "#b9bec2", stroke: "#7d8388" }, g);
+      el("text", { x: 350, y: y + 6, "text-anchor": "middle", style: `fill:${c};font-size:20px;font-weight:700` }, g, s);
+    }
+  }
+  function charger(g) {
+    el("rect", { x: 60, y: 300, width: 210, height: 140, rx: 6, fill: "#1f4fbf", stroke: "#173c91" }, g);
+    el("rect", { x: 36, y: 345, width: 56, height: 50, rx: 8, fill: "#b8bcc0", stroke: "#7d8388" }, g);
+    el("rect", { x: 112, y: 345, width: 52, height: 50, fill: "#1b1b1b" }, g);
+    el("rect", { x: 182, y: 365, width: 36, height: 30, fill: "#1b1b1b" }, g);
+    el("rect", { x: 120, y: 308, width: 14, height: 8, fill: "#ff5a4f" }, g);
+    el("rect", { x: 150, y: 308, width: 14, height: 8, fill: "#4fa3ff" }, g);
+    for (const [y, n] of [[318, "OUT+"], [348, "B+"], [392, "B−"], [422, "OUT−"]]) {
+      el("rect", { x: 239, y: y - 11, width: 22, height: 22, fill: "#d9b44a", stroke: "#9c7d24" }, g);
+      el("text", { x: 233, y: y + 4, "text-anchor": "end", class: "on-board", direction: "ltr" }, g, n);
+    }
+    el("text", { x: 165, y: 288, "text-anchor": "middle", class: "lbl", style: "direction:rtl;unicode-bidi:embed" }, g, "מטען TP4056");
+    el("text", { x: 64, y: 333, "text-anchor": "middle", class: "on-board" }, g, "USB-C");
+  }
+  function xiao(g) {
+    el("rect", { x: 740, y: 40, width: 190, height: 250, rx: 10, fill: "#1c1c1c", stroke: "#000" }, g);
+    el("rect", { x: 805, y: 28, width: 60, height: 26, rx: 6, fill: "#b8bcc0", stroke: "#7d8388" }, g);
+    el("rect", { x: 822, y: 0, width: 26, height: 28, fill: "#d98a2b", opacity: .85 }, g);
+    el("text", { x: 812, y: 16, "text-anchor": "end", class: "sm" }, g, "סרט המצלמה");
+    const L = ["5V", "GND", "3V3", "D10", "D9", "D8", "D7"], R = ["D0", "D1", "D2", "D3", "D4", "D5", "D6"];
+    L.forEach((n, i) => { const y = 80 + i * 28; el("circle", { cx: 760, cy: y, r: 8, fill: "#d9b44a" }, g); el("circle", { cx: 760, cy: y, r: 3, fill: "#1c1c1c" }, g);
+      el("text", { x: 774, y: y + 4, class: "on-board", direction: "ltr" }, g, n); });
+    R.forEach((n, i) => { const y = 80 + i * 28; el("circle", { cx: 910, cy: y, r: 8, fill: "#d9b44a" }, g); el("circle", { cx: 910, cy: y, r: 3, fill: "#1c1c1c" }, g);
+      el("text", { x: 896, y: y + 4, "text-anchor": "end", class: "on-board", direction: "ltr" }, g, n); });
+    for (let i = 0; i < 4; i++) for (const x of [812, 834]) el("circle", { cx: x, cy: 140 + i * 30, r: 4, fill: "#8d7a3a" }, g);
+    for (const [y, n] of [[136, "BAT−"], [164, "BAT+"]]) {
+      el("rect", { x: 859, y: y - 9, width: 22, height: 18, fill: "#d9b44a", stroke: "#9c7d24" }, g);
+      el("text", { x: 855, y: y + 4, "text-anchor": "end", class: "on-board", direction: "ltr" }, g, n);
+    }
+    el("text", { x: 722, y: 170, "text-anchor": "end", class: "lbl" }, g, "XIAO");
+    el("text", { x: 722, y: 192, "text-anchor": "end", class: "sm" }, g, "הצד של מגעי הסוללה");
+  }
+  function sw(g) {
+    el("rect", { x: 790, y: 420, width: 94, height: 32, rx: 3, fill: "#1b1b1b" }, g);
+    el("rect", { x: 852, y: 452, width: 14, height: 14, fill: "#e8e8e8", stroke: "#888" }, g);
+    for (const [x, n] of [[804, "—"], [837, "אמצע"], [870, "ON"]]) {
+      el("rect", { x: x - 3, y: 400, width: 6, height: 20, fill: "#b8bcc0" }, g);
+      el("text", { x, y: 486, "text-anchor": "middle", class: "sm" }, g, n);
+    }
+    el("text", { x: 837, y: 512, "text-anchor": "middle", class: "lbl" }, g, "מתג");
+  }
+  function resistor(g, x, y1, y2, name) {
+    const h = y2 - y1;
+    el("rect", { x: x - 11, y: y1, width: 22, height: h, rx: 9, fill: "#8ec9e8", stroke: "#5c9fc2" }, g);
+    ["#d4302b", "#d4302b", "#111", "#f08a1c", "#8b4a1c"].forEach((c, i) =>
+      el("rect", { x: x - 11, y: y1 + 10 + i * (i === 4 ? 11.5 : 9), width: 22, height: 5, fill: c }, g));
+    el("text", { x: x - 20, y: y1 + h / 2 - 2, "text-anchor": "end", class: "lbl" }, g, name);
+    el("text", { x: x - 20, y: y1 + h / 2 + 16, "text-anchor": "end", class: "sm" }, g, "220k");
+  }
+  function chain(g) {
+    line(g, [[930, 450], [930, 470]], "#9aa3a8", 3);
+    line(g, [[930, 540], [930, 610]], "#9aa3a8", 3);
+    line(g, [[930, 680], [930, 700]], "#9aa3a8", 3);
+    resistor(g, 930, 470, 540, "R1");
+    resistor(g, 930, 610, 680, "R2");
+    el("circle", { cx: 930, cy: 580, r: 6, fill: "#9aa3a8", stroke: "#666" }, g);
+  }
+
+  // ---------- render ----------
+  let cur = 0, done = new Set();
+  try { const s = JSON.parse(localStorage.getItem("solderGuide") || "{}"); cur = Math.min(Math.max(s.cur | 0, 0), S.length - 1); done = new Set(s.done || []); } catch (e) {}
+  const save = () => { try { localStorage.setItem("solderGuide", JSON.stringify({ cur, done: [...done] })); } catch (e) {} };
+
+  function render() {
+    svg.textContent = "";
+    const parts = el("g"), wires = el("g"), marks = el("g");
+    battery(parts); charger(parts); xiao(parts); sw(parts);
+    if (cur >= 1) chain(parts);
+    for (const [id, w] of Object.entries(W)) {
+      const evs = w.ev.filter(e => e[0] <= cur);
+      const last = evs[evs.length - 1];
+      if (last) drawWire(wires, w, w.full, last[1], last[0] === cur, false);
+      else if (w.stub && w.stubFrom <= cur) drawWire(wires, w, w.stub, "full", false, true);
+    }
+    if (cur === 7 || cur === 8) for (const p of [P.tabP, P.tabN])
+      el("rect", { x: p[0] - 26, y: p[1] - 8, width: 18, height: 16, rx: 3, fill: p === P.tabP ? "#d4302b" : "#222", stroke: "#000" }, marks);
+    for (const p of S[cur].hl) el("circle", { cx: p[0], cy: p[1], r: 15, class: "ring" }, marks);
+    for (const [x, y, t] of S[cur].tags) {
+      const g = el("g", { class: "tag" }, marks);
+      const r = el("rect", { x: 0, y: y - 16, height: 24, rx: 12 }, g);
+      const tx = el("text", { x: 0, y: y + 1, "text-anchor": "middle", style: "direction:rtl;unicode-bidi:embed" }, g, t);
+      const w = tx.getComputedTextLength() || t.length * 8;
+      r.setAttribute("x", x - 10); r.setAttribute("width", w + 20); tx.setAttribute("x", x + w / 2);
+    }
+    const st = S[cur];
+    document.getElementById("gStep").innerHTML = `<div class="k" style="margin-top:0">שלב ${cur} מתוך ${S.length - 1}</div><h2>${st.t}</h2>${st.html}`;
+    document.getElementById("gDone").checked = done.has(cur);
+    document.getElementById("gPrev").disabled = cur === 0;
+    document.getElementById("gNext").disabled = cur === S.length - 1;
+    const chips = document.getElementById("gChips"); chips.textContent = "";
+    S.forEach((s, i) => {
+      const b = document.createElement("button");
+      b.textContent = i; b.title = s.t;
+      if (done.has(i)) b.className = "done";
+      if (i === cur) b.setAttribute("aria-current", "step");
+      b.onclick = () => go(i);
+      chips.appendChild(b);
+    });
+    save();
+  }
+  function go(i) { cur = Math.min(Math.max(i, 0), S.length - 1); render(); document.querySelector(".g-side").scrollTop = 0; }
+
+  const guide = document.getElementById("guide");
+  function open() { guide.hidden = false; render(); if (!location.hash.startsWith("#solder")) history.replaceState(null, "", "#solder"); }
+  function close() { guide.hidden = true; history.replaceState(null, "", location.pathname + location.search); }
+  document.getElementById("guideOpen").onclick = open;
+  document.getElementById("guideClose").onclick = close;
+  document.getElementById("gPrev").onclick = () => go(cur - 1);
+  document.getElementById("gNext").onclick = () => go(cur + 1);
+  document.getElementById("gDone").onchange = e => { e.target.checked ? done.add(cur) : done.delete(cur); render(); };
+  document.addEventListener("keydown", e => {
+    if (guide.hidden || e.target.closest("input, textarea")) return;
+    if (e.key === "ArrowLeft") go(cur + 1);
+    else if (e.key === "ArrowRight") go(cur - 1);
+    else if (e.key === "Escape") close();
+  });
+  const m = location.hash.match(/^#solder(?:-(\d+))?$/);
+  if (m) { if (m[1]) cur = Math.min(+m[1], S.length - 1); open(); }
+})();
+</script>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { STLLoader } from "three/addons/loaders/STLLoader.js";
+
+// Values from the OpenSCAD model (echoed by camera_enclosure.scad).
+const M = {W: 68.4, D: 33.05, pt: 3, H: 156, Ht: 202, R: 42.823, sc: [0, -9.7716, 180], face: 0.8, slit_a: 50, car_w: 8.2, car_h: 13.7, tiles: [16, 12, 8, 6, 4, 3], flexLen: 75};
+
+// group: "fixed" = tower coordinates (y = away from the wall), "carriage" = arc-centre
+// coordinates (centre at the origin, lens towards +y). ex = [x, y, z] explode steps.
+const PARTS = [
+  {id: "tower", file: "tower", name: "גוף המגדל (לבן)", color: "#eef0ee", group: "fixed", ex: [0, 0, 0], print: true,
+   text: "גב שטוח, צדדים שטוחים ליד הגב וחזית מעוגלת: נצמד לקיר ונכנס לפינה ימנית או שמאלית. בפנים: מדף לסוללה, צלעות, ולמטה המטען (USB-C בתחתית) והמתג. מדפיסים עומד, בלי תמיכות."},
+  {id: "hood", file: "hood", name: "כיפה (לבן)", color: "#f4f5f3", group: "fixed", ex: [0, 0, 2.5], print: true, lid: true,
+   text: "ממשיכה את צורת המגדל. בחזית חריץ לאורך הקשת שמתמלא באריחים כהים, כמו עדשה של גלאי תנועה. מתחתיו חרוט מספר דגם מומצא (PIR-210) וחלון קטן ל'נורית', בלי נורית; טיפת לק כהה או אדום תיתן לו מראה אמיתי. בפנים שתי מסילות מעוגלות לעגלה. מדפיסים הפוך."},
+  {id: "carriage", file: "carriage", name: "עגלה (שחור)", color: "#2c2f34", group: "carriage", ex: [0, 0, 0], print: true,
+   text: "נוסעת לאורך הקשת שמאחורי החריץ (עד בערך 38° לכל צד). החזית שלה ממלאת את החלק שלה בחריץ, עם חריצים כמו של האריחים ופתח לעדשה. בדפנות שני חריצים מעוגלים שמרכזם בקצה העדשה: הציר הווירטואלי של ההטיה. מודפסת עם עוד אחת לגיבוי."},
+  {id: "tiles", file: null, name: "אריחי החריץ (שחור)", color: "#26282c", group: "tiles", ex: [0, 0, 0], print: true,
+   text: "ממלאים את החריץ מסביב לעגלה, עם חריצים אנכיים כמו עדשה של גלאי תנועה. נלחצים מבחוץ, ושפה ושתי בליטות קטנות מחזיקות אותם. כדי להזיז את המצלמה: שולפים אריחים מצד אחד, מחליקים את העגלה, ומכניסים אותם בצד השני. יש שישה רוחבים (16, 12, 8, 6, 4, 3 מ\"מ), ומודפסים ארבעה מכל אחד."},
+  {id: "rocker", file: "rocker", name: "מחזיק המצלמה (נדנדה)", color: "#c9894b", group: "rocker", ex: [0, -0.8, 0], print: true,
+   text: "מחזיק את המצלמה, ומוטה סביב קצה העדשה מ-5° למעלה עד 38° למטה. ארבעה ברגי M3×6 נכנסים מבחוץ דרך החריצים המעוגלים בדפנות העגלה ומוברגים לזנב שלו. כשמהדקים אותם, הם קובעים את החיכוך. מודפס עם עוד שניים לגיבוי."},
+  {id: "screws", file: "screws", name: "ברגי ציר (4× M3×6)", color: "#b9bec4", group: "rocker", ex: [0, -0.8, 0],
+   text: "הצירים של הנדנדה: ראש הבורג נשאר מחוץ לדופן העגלה, והגוף שלו נוסע בחריץ המעוגל. הידוק קל נותן חיכוך שמחזיק את ההטיה."},
+  {id: "back", file: "back", name: "גב (לקיר, לבן)", color: "#e4e7e4", group: "fixed", ex: [0, -1.5, 0], print: true, lid: true,
+   text: "סוגר את המגדל ואת הכיפה, עם 4 ברגים M3×8. שני חורי מנעול לתלייה על מסמר, בורג או וו תמונה, ומשטח חלק למדבקות תלייה."},
+  {id: "foot", file: "foot", name: "רגל לארון (לא חובה, לבן)", color: "#e9ebe8", group: "fixed", ex: [0, 0, -1.5], print: true,
+   text: "המגדל נעמד בתוכה כשהוא על ארון או מדף, והיא מונעת ממנו ליפול. יש שקעים לאצבעות כדי להרים אותו לטעינה."},
+  {id: "battery", file: "d_battery", name: "סוללה 10,000 mAh", color: "#3d6fd6", group: "fixed", ex: [0, 0.6, 0],
+   text: "עומדת צמוד לגב. 61 × 14 × 110. הלשוניות למטה, ליד המטען."},
+  {id: "foam", file: "d_foam", name: "פס ספוג", color: "#ece4a8", group: "fixed", ex: [0, 0.9, 0],
+   text: "בין הסוללה לשתי הצלעות שבחזית. אם הסוללה דקה מ-14 מ\"מ, שמים שתי שכבות."},
+  {id: "tp4056", file: "d_tp4056", name: "מטען TP4056", color: "#2a40b8", group: "fixed", ex: [0, 0.6, 0],
+   text: "עומד בשני עמודים עם חריצים, ושקע ה-USB-C פונה למטה דרך התחתית. ככה אפשר לטעון גם כשהמגדל תלוי."},
+  {id: "switch", file: "d_switch", name: "מתג הפעלה", color: "#141516", group: "fixed", ex: [0, 0.6, 0],
+   text: "בעריסה על הרצפה, הידית יוצאת בחריץ בתחתית, ליד ה-USB-C."},
+  {id: "wires", file: null, name: "חוטים ונגדים", color: "#c62828", group: "fixed", ex: [0, 0.6, 0],
+   text: "סוללה → מטען (B+/B−). OUT+ → רגל אמצעית של המתג. רגל ON → חוט אדום עד BAT+ של ה-XIAO. OUT− → חוט שחור עד BAT−. מחלק המתח (שני נגדי 220k) שוכב לפני המתג, בין רגל ON לבין OUT−, והחוט הצהוב יוצא מהצומת שלהם עד D0. החוטים עולים בתעלה שלפני הסוללה, ואז נכנסים: האדום והשחור ברווח של 2 מ\"מ שמאחורי ה-XIAO, והצהוב מהצד של לוח המצלמה. השלבים המלאים במדריך ההלחמה."},
+  {id: "xiao", file: "d_xiao", name: "XIAO ESP32S3 + Sense", color: "#2f3236", group: "fixed", ex: [0, 0.6, 0],
+   text: "עומד הפוך (USB למעלה) בשתי מסילות שעל הגב, 2 מ\"מ מהגב בשביל חוטי הסוללה. ככה המחבר של המצלמה למטה, והכבל יוצא ממנו כלפי מעלה, ישר לכיוון העגלה."},
+  {id: "flex", file: null, name: "כבל המצלמה (75 מ\"מ, מחושב)", color: "#e39b35", group: "fixed", ex: [0, 0, 0],
+   text: "מחושב מחדש בכל תזוזה, באורך האמיתי: מהמצלמה, דרך החריץ בתחתית העגלה, אל המחבר שבתחתית ה-XIAO. העודף נתלה כלולאה רכה בתעלה שלפני הסוללה. המספרים בפינה מראים כמה צריך ובכמה נשאר עודף."},
+  {id: "antenna", file: "d_antenna", name: "אנטנת Wi-Fi", color: "#c4a174", group: "fixed", ex: [0, 0, 2.5],
+   text: "מודבקת לתקרה שבתוך הכיפה. היא גבוהה ורחוקה מהסוללה, וזה טוב לקליטה."},
+  {id: "camera", file: "d_camera", name: "מצלמה OV2640 (120°)", color: "#0e0f10", group: "rocker", ex: [0, -0.8, 0],
+   text: "יושבת בנדנדה, קצה העדשה בדיוק בפני השטח של החריץ, ולכן שולי החריץ לא נכנסים לתמונה."},
+];
+const STEP = 16;  // mm per explode level at 100%
+
+// ---------- scene ----------
+const canvas = document.getElementById("c");
+const stage = document.getElementById("stage");
+const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
+const persp = new THREE.PerspectiveCamera(35, 1, 1, 5000);
+persp.up.set(0, 0, 1);
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, -5000, 5000);
+ortho.up.set(0, 0, 1);
+let camera = persp;
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+const target = new THREE.Vector3(0, 15, 100);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f8a, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(-150, -200, 300);
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xffffff, 0.5);
+fill.position.set(200, 150, 80);
+scene.add(fill);
+
+// groups: fixed (everything that doesn't move) and the eye, which turns about its
+// centre: pan about the vertical, then tilt.
+const fixed = new THREE.Group(), carPan = new THREE.Group(), rockerTilt = new THREE.Group();
+const wall = new THREE.Group(), mount = new THREE.Group(), mountInner = new THREE.Group();
+scene.add(wall, mount);
+mount.position.set(M.W / 2, -M.pt, 0);              // the wedge turns the tower about its right back edge
+mount.add(mountInner);
+mountInner.position.set(-M.W / 2, M.pt, 0);
+mountInner.add(fixed, carPan);
+carPan.add(rockerTilt);
+rockerTilt.position.set(0, M.R + M.face, 0);
+// the slit tiles are laid out again whenever the carriage moves
+const tilesBase = new THREE.Group(), tilesGroup = new THREE.Group();
+mountInner.add(tilesBase);
+tilesBase.position.set(...M.sc);
+tilesBase.add(tilesGroup);
+const groupOf = {fixed, carriage: carPan, rocker: rockerTilt, wall, tiles: tilesBase};
+
+// floor grid (1 cm, darker every 10 cm) and reference objects
+const floorZ = -3;
+const gridGroup = new THREE.Group();
+{
+  const g1 = new THREE.GridHelper(400, 40, 0x9aa39c, 0xc4cbc5);
+  const g2 = new THREE.GridHelper(400, 4, 0x7d8780, 0x7d8780);
+  for (const g of [g1, g2]) { g.rotation.x = Math.PI / 2; g.position.set(0, 100, floorZ - 0.05); g.material.transparent = true; g.material.opacity = 0.7; gridGroup.add(g); }
+}
+scene.add(gridGroup);
+
+const refs = new THREE.Group();
+{
+  const metal = new THREE.MeshStandardMaterial({color: 0xb9bec4, metalness: 0.6, roughness: 0.35});
+  const red = new THREE.MeshStandardMaterial({color: 0xb3261e, roughness: 0.5});
+  const can = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(33, 33, 115, 48), red);
+  body.rotation.x = Math.PI / 2; body.position.z = 57.5;
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(27, 33, 6, 48), metal);
+  top.rotation.x = Math.PI / 2; top.position.z = 118;
+  can.add(body, top);
+  can.position.set(95, 60, floorZ);
+  can.userData = {name: "פחית שתייה 330 מ\"ל", dims: "קוטר 66 · גובה 121", text: "להשוואת גודל."};
+  const card = new THREE.Mesh(new THREE.BoxGeometry(85.6, 54, 0.8), new THREE.MeshStandardMaterial({color: 0x2f7d6d, roughness: 0.6}));
+  card.position.set(-110, 70, floorZ + 0.4);
+  card.userData = {name: "כרטיס אשראי", dims: "85.6 × 54", text: "להשוואת גודל."};
+  const coin = new THREE.Mesh(new THREE.CylinderGeometry(11.5, 11.5, 2.2, 40), new THREE.MeshStandardMaterial({color: 0xc9a74a, metalness: 0.7, roughness: 0.3}));
+  coin.rotation.x = Math.PI / 2; coin.position.set(-110, 120, floorZ + 1.1);
+  coin.userData = {name: "מטבע 10 ₪", dims: "קוטר 23", text: "להשוואת גודל."};
+  refs.add(can, card, coin);
+}
+scene.add(refs);
+const walls = new THREE.Group();
+{
+  const mat = new THREE.MeshStandardMaterial({color: 0xe9e4da, roughness: 0.95, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false});
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(420, 320), mat);
+  back.rotation.x = Math.PI / 2; back.position.set(60, -M.pt - 0.2, floorZ + 160);
+  const side = new THREE.Mesh(new THREE.PlaneGeometry(320, 260), mat);
+  side.rotation.y = Math.PI / 2; side.position.set(-M.W / 2 - 0.2, -M.pt + 130, floorZ + 160);
+  walls.add(back, side);
+}
+scene.add(walls);
+
+// ---------- wiring (drawn here, in tower coordinates, so it can follow natural curves) ----------
+function buildWiring() {
+  const g = new THREE.Group();
+  const V = a => new THREE.Vector3(...a);
+  const mat = c => new THREE.MeshStandardMaterial({color: c, roughness: 0.55});
+  const red = mat("#d4302b"), black = mat("#202020"), yellow = mat("#e0a800"), sleeve = mat("#111"), body = mat("#8ec9e8");
+  const metal = new THREE.MeshStandardMaterial({color: "#c3c8cc", metalness: 0.8, roughness: 0.3});
+  const tube = (pts, r, m) => {
+    const c = new THREE.CatmullRomCurve3(pts.map(V), false, "centripetal");
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(c, pts.length * 20, r, 8, false), m));
+  };
+  const cyl = (a, b, r, m) => {
+    const A = V(a), B = V(b), dir = B.clone().sub(A);
+    const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, dir.length(), 16), m);
+    c.position.copy(A).add(B).multiplyScalar(0.5);
+    c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    g.add(c);
+  };
+  const resistor = (a, b) => {   // 220k: red red black orange brown
+    cyl(a, b, 1.15, body);
+    const A = V(a), B = V(b);
+    ["#d4302b", "#d4302b", "#111", "#f08a1c", "#8b4a1c"].forEach((c, i) => {
+      const t = 0.14 + i * 0.13 + (i === 4 ? 0.1 : 0);
+      cyl(A.clone().lerp(B, t).toArray(), A.clone().lerp(B, t + 0.06).toArray(), 1.2, mat(c));
+    });
+  };
+  const blob = p => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.9, 12, 8), metal); m.position.set(...p); g.add(m); };
+  const WR = 0.6, LR = 0.25;
+  // battery tabs -> charger B+ / B- (pads along the charger's top edge: OUT+, B+, B-, OUT- from x -8 to -21.5)
+  tube([[-9.5, 7.5, 26.6], [-10.6, 10.8, 26.2], [-12.5, 10.3, 25.6]], WR, red);
+  tube([[10.5, 7.5, 26.6], [6, 12.5, 24.6], [-6, 13.5, 23.6], [-14, 12.5, 24.4], [-17, 10.3, 25.6]], WR, black);
+  // OUT+ -> switch middle leg
+  tube([[-8, 10.3, 25.6], [-6, 13, 20], [2, 13.5, 11], [10, 13, 8.2], [14.75, 11.4, 7.3]], WR, red);
+  // switch ON leg -> up the front channel -> behind the XIAO -> BAT+
+  tube([[17.25, 11.4, 7.3], [18.5, 12.5, 12], [17, 13.5, 18], [10, 20, 23], [2, 26, 27], [-0.6, 27, 33], [-0.6, 27, 131], [-0.6, 21, 138.5],
+        [1.5, 8, 140.2], [3, 1.1, 140.6], [3.5, 1.1, 146], [3.5, 1.3, 151.5]], WR, red);
+  // OUT- -> up the channel -> behind the XIAO -> BAT-
+  tube([[-21.5, 10.3, 25.6], [-18, 15.5, 26.2], [-6, 23, 27.6], [0.7, 27, 33], [0.7, 27, 131], [0.7, 21, 138.3],
+        [2.8, 8, 140.1], [4.6, 1.0, 140.4], [4.6, 1.0, 148], [3.5, 1.3, 154]], WR, black);
+  // divider: ON leg -> R1 -> junction (sleeve) -> R2 -> OUT-, lying in front of the switch
+  tube([[17.25, 11.4, 7.3], [18.6, 14, 9], [18.8, 17, 11.6], [18.4, 18, 13]], LR, metal);
+  resistor([18.4, 18, 13], [12.1, 18, 13]);
+  tube([[12.1, 18, 13], [5.1, 18, 13]], LR, metal);
+  cyl([10.3, 18, 13], [5.9, 18, 13], 1.3, sleeve);
+  resistor([5.1, 18, 13], [-1.2, 18, 13]);
+  tube([[-1.2, 18, 13], [-6, 17, 16], [-14, 14, 21], [-19.5, 11.5, 24.5], [-21.5, 10.3, 25.6]], LR, metal);
+  // D0 wire from the junction, up the channel, into the D0 hole from the camera-board side
+  tube([[8, 18, 13], [7, 22, 18], [1.9, 27, 30], [1.9, 27, 131], [5, 22, 138], [8, 12, 142], [8, 6, 152], [8, 4.2, 158.6], [8, 3.3, 159.1]], WR, yellow);
+  for (const p of [[-8, 9.9, 25.6], [-12.5, 9.9, 25.6], [-17, 9.9, 25.6], [-21.5, 9.9, 25.6], [-9.5, 7.5, 26.6], [10.5, 7.5, 26.6],
+                   [14.75, 11.2, 7.2], [17.25, 11.2, 7.2], [3.5, 1.6, 151.5], [3.5, 1.6, 154], [8, 3.5, 159.1]]) blob(p);
+  return g;
+}
+
+// ---------- load parts ----------
+const loader = new STLLoader();
+const meshes = {};
+const edgeMat = new THREE.LineBasicMaterial({color: 0x1a1f1c, transparent: true, opacity: 0.35});
+// all STL files, base64 in one JSON (models/*.stl packed by the build step)
+const packed = await (await fetch("models.json")).json();
+const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0)).buffer;
+const flexMesh = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshStandardMaterial({color: "#e39b35", roughness: 0.6, side: THREE.DoubleSide}));
+mountInner.add(flexMesh);
+const tileGeos = {}, tileMat = new THREE.MeshStandardMaterial({color: "#26282c", roughness: 0.75, side: THREE.DoubleSide});
+for (const w of M.tiles) { tileGeos[w] = loader.parse(b64(packed["tile_" + w])); tileGeos[w].computeVertexNormals(); tileGeos[w].computeBoundingBox(); }
+await Promise.all(PARTS.map(async p => {
+  if (p.id === "flex") {
+    flexMesh.userData = {part: p, edges: new THREE.Group()};
+    meshes[p.id] = flexMesh;
+    return;
+  }
+  if (p.id === "wires") {
+    const g = buildWiring();
+    g.userData = {part: p, edges: new THREE.Group()};
+    fixed.add(g);
+    meshes[p.id] = g;
+    return;
+  }
+  if (!p.file) {
+    tilesGroup.userData = {part: p, edges: new THREE.Group()};
+    tilesGroup.material = tileMat;
+    tilesGroup.geometry = tileGeos[16];
+    meshes[p.id] = tilesGroup;
+    return;
+  }
+  const geo = loader.parse(b64(packed[p.file]));
+  geo.computeVertexNormals();
+  geo.computeBoundingBox();
+  const mat = new THREE.MeshStandardMaterial({color: p.color, roughness: 0.75, metalness: 0.02, side: THREE.DoubleSide});
+  const mesh = new THREE.Mesh(geo, mat);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), edgeMat);
+  mesh.add(edges);
+  mesh.userData = {part: p, edges};
+  groupOf[p.group].add(mesh);
+  if (p.hidden) mesh.visible = false;
+  meshes[p.id] = mesh;
+}));
+document.getElementById("loading").hidden = true;
+
+// ---------- part lists ----------
+function row(p) {
+  const li = document.createElement("li");
+  li.dataset.id = p.id;
+  li.innerHTML = `<input type="checkbox" checked aria-label="הצג ${p.name}"><span class="sw" style="background:${p.color}"></span><span class="nm">${p.name}</span><button class="solo" title="הצג רק את החלק הזה">לבד</button>`;
+  const cb = li.querySelector("input");
+  cb.onclick = e => { e.stopPropagation(); meshes[p.id].visible = cb.checked; updateDims(); };
+  li.querySelector(".solo").onclick = e => { e.stopPropagation(); solo(p.id); };
+  li.onclick = () => select(meshes[p.id]);
+  return li;
+}
+for (const p of PARTS) document.getElementById(p.print ? "printList" : "dummyList").append(row(p));
+function syncChecks() {
+  document.querySelectorAll(".parts li").forEach(li => li.querySelector("input").checked = meshes[li.dataset.id].visible);
+}
+function solo(id) {
+  for (const k in meshes) meshes[k].visible = k === id;
+  refs.visible = false; document.getElementById("showRefs").checked = false;
+  syncChecks(); select(meshes[id]); frame([meshes[id]]); updateDims();
+}
+document.getElementById("allBtn").onclick = () => {
+  for (const k in meshes) meshes[k].visible = true;
+  syncChecks(); updateDims(); setView("iso");
+};
+
+// ---------- motion ----------
+const $ = id => document.getElementById(id);
+function applyMotion() {
+  const t = +$("tilt").value, pn = +$("pan").value, ex = +$("explode").value / 100;
+  carPan.position.set(M.sc[0], M.sc[1], M.sc[2] + 2.5 * STEP * ex);
+  tilesBase.position.set(M.sc[0], M.sc[1], M.sc[2] + 2.5 * STEP * ex);
+  layoutTiles(pn);
+  carPan.rotation.z = pn * Math.PI / 180;
+  rockerTilt.rotation.x = -t * Math.PI / 180;
+  for (const p of PARTS) meshes[p.id].position.set(...p.ex.map(v => v * STEP * ex));
+  updateFlex();
+  $("tiltOut").textContent = t > 0 ? `${t}° למטה` : t < 0 ? `${-t}° למעלה` : "ישר";
+  $("panOut").textContent = pn > 0 ? `${pn}° שמאלה` : pn < 0 ? `${-pn}° ימינה` : "ישר";
+  $("explodeOut").textContent = ex ? `${Math.round(ex * 100)}%` : "מורכב";
+  updateDims();
+}
+for (const id of ["tilt", "pan", "explode"]) $(id).addEventListener("input", applyMotion);
+$("lidGlass").onchange = () => {
+  for (const p of PARTS) if (p.lid) { const m = meshes[p.id].material; m.transparent = $("lidGlass").checked; m.opacity = m.transparent ? 0.35 : 1; m.depthWrite = !m.transparent; }
+};
+$("towerGlass").onchange = () => {
+  for (const id of ["tower", "foot"]) { const m = meshes[id].material, on = $("towerGlass").checked; m.transparent = on; m.opacity = on ? 0.3 : 1; m.depthWrite = !on; m.needsUpdate = true; }
+};
+$("showRefs").onchange = () => refs.visible = $("showRefs").checked;
+$("showGrid").onchange = () => gridGroup.visible = $("showGrid").checked;
+$("showWalls").onchange = () => walls.visible = $("showWalls").checked;
+
+// Field of view: 120 degrees across the diagonal of a 4:3 picture (about 108 wide,
+// 92 high), drawn out to half a metre from the lens tip. It moves with the camera.
+const fov = new THREE.Group();
+{
+  const L = 500, t = Math.tan(60 * Math.PI / 180), hw = L * t * 0.8, hh = L * t * 0.6;
+  const c = [[-hw, L, -hh], [hw, L, -hh], [hw, L, hh], [-hw, L, hh]];
+  const tri = [];
+  for (let i = 0; i < 4; i++) tri.push(0, 0, 0, ...c[i], ...c[(i + 1) % 4]);
+  tri.push(...c[0], ...c[1], ...c[2], ...c[0], ...c[2], ...c[3]);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(tri, 3));
+  fov.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({color: 0xf2a33a, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false})));
+  const ln = [0, 0, 0, 0, L, 0];
+  for (const q of c) ln.push(0, 0, 0, ...q);
+  for (let i = 0; i < 4; i++) ln.push(...c[i], ...c[(i + 1) % 4]);
+  const lg = new THREE.BufferGeometry();
+  lg.setAttribute("position", new THREE.Float32BufferAttribute(ln, 3));
+  fov.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({color: 0xd97b1f, transparent: true, opacity: 0.85})));
+}
+fov.position.set(0, 0, 0);
+fov.visible = false;
+rockerTilt.add(fov);
+$("showFov").onchange = () => {
+  fov.visible = $("showFov").checked;
+  if (fov.visible) frame([...Object.values(meshes).filter(m => m.visible), fov], new THREE.Vector3(...DIRS.iso));
+};
+$("showEdges").onchange = () => { for (const k in meshes) meshes[k].userData.edges.visible = $("showEdges").checked; applyMotion(); };
+$("lidGlass").onchange();
+
+function layoutTiles(pan) {
+  tilesGroup.clear();
+  const noseA = M.car_w / M.R * 180 / Math.PI;
+  for (const side of [-1, 1]) {
+    const edge = pan + side * noseA;
+    let L = (side > 0 ? M.slit_a - edge : edge + M.slit_a) / 180 * Math.PI * M.R, at = 0;
+    while (L >= M.tiles[M.tiles.length - 1]) {
+      const w = M.tiles.find(x => x <= L);
+      const m = new THREE.Mesh(tileGeos[w], tileMat);
+      if ($("showEdges").checked) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(tileGeos[w], 30), edgeMat));
+      m.rotation.z = (edge + side * (at + w / 2) / M.R * 180 / Math.PI) * Math.PI / 180;
+      tilesGroup.add(m);
+      at += w; L -= w;
+    }
+  }
+}
+
+// Camera flex: from the bottom edge of the sensor board, down through the notch in
+// the carriage, then a slack loop hanging into the channel in front of the battery,
+// up over the XIAO and down its face to the connector at its bottom. The loop depth
+// is found so the whole length is the real flex (75 mm, ~5 of it in the connector).
+const FLEX_W = 6.5, FLEX_FREE = M.flexLen - 5;
+const XIAO_TOP = new THREE.Vector3(0, 11.5, M.H + 8), XIAO_CONN = new THREE.Vector3(0, 11.5, M.H - 9.5);
+let flexInfo = "";
+function updateFlex() {
+  scene.updateMatrixWorld(true);
+  const inTower = v => mountInner.worldToLocal(v);
+  const fromRocker = (x, y, z) => inTower(rockerTilt.localToWorld(new THREE.Vector3(x, y, z)));
+  const fromCarriage = (x, y, z) => inTower(carPan.localToWorld(new THREE.Vector3(x, y, z)));
+  const a0 = fromRocker(0, -12.2, -4.25), a1 = fromRocker(0, -12.2, -9);
+  const a2 = fromCarriage(0, M.R + M.face - 12.5, -M.car_h - 3);
+  const curveFor = depth => new THREE.CatmullRomCurve3([a0, a1, a2,
+    new THREE.Vector3(a2.x * 0.5, 22, Math.min(a2.z, XIAO_TOP.z) - depth),
+    XIAO_TOP, XIAO_CONN], false, "centripetal");
+  let lo = 0, hi = 60, curve = curveFor(0);
+  const need = curve.getLength();
+  if (need < FLEX_FREE) {
+    for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; (curveFor(mid).getLength() > FLEX_FREE ? hi = mid : lo = mid); }
+    curve = curveFor(lo);
+  }
+  const N = 140, pos = [], up = new THREE.Vector3(0, 0, 1);
+  const pan = +$("pan").value * Math.PI / 180, along = new THREE.Vector3(Math.cos(pan), Math.sin(pan), 0);
+  let prev = null;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, p = curve.getPointAt(t), tg = curve.getTangentAt(t);
+    let side = Math.abs(tg.dot(up)) < 0.9 ? new THREE.Vector3().crossVectors(tg, up).normalize() : along.clone();
+    if (prev && side.dot(prev) < 0) side.negate();
+    prev = side;
+    pos.push(p.clone().addScaledVector(side, -FLEX_W / 2), p.clone().addScaledVector(side, FLEX_W / 2));
+  }
+  const tri = [];
+  for (let i = 0; i < N; i++) {
+    const [l0, r0, l1, r1] = [pos[2 * i], pos[2 * i + 1], pos[2 * i + 2], pos[2 * i + 3]];
+    tri.push(...l0.toArray(), ...r0.toArray(), ...l1.toArray(), ...r0.toArray(), ...r1.toArray(), ...l1.toArray());
+  }
+  flexMesh.geometry.dispose();
+  flexMesh.geometry = new THREE.BufferGeometry();
+  flexMesh.geometry.setAttribute("position", new THREE.Float32BufferAttribute(tri, 3));
+  flexMesh.geometry.computeVertexNormals();
+  flexMesh.geometry.computeBoundingBox();
+  const spare = FLEX_FREE - need;
+  flexInfo = spare >= 0
+    ? ` · כבל המצלמה: המסלול צריך <b class="num">${Math.round(need + 5)}</b> מתוך 75 מ"מ, עודף <b class="num">${Math.round(spare)}</b> בלולאה`
+    : ` · <b style="color:#c62828">כבל המצלמה קצר ב-${Math.round(-spare)} מ"מ</b>`;
+}
+
+// overall size of the printed parts as they stand now
+function updateDims() {
+  const b = new THREE.Box3();
+  scene.updateMatrixWorld(true);
+  for (const p of PARTS) if (p.print && meshes[p.id].visible) b.expandByObject(meshes[p.id]);
+  const s = b.getSize(new THREE.Vector3());
+  $("dims").innerHTML = b.isEmpty() ? "" :
+    `כל מה שמוצג: <b class="num">${s.x.toFixed(0)} × ${s.y.toFixed(0)} × ${s.z.toFixed(0)}</b> מ"מ (אורך × רוחב × גובה) · המגדל: <b class="num">68 × 36 × 202</b> (רוחב × עומק מהקיר × גובה)` + flexInfo;
+}
+
+// ---------- selection ----------
+let selected = null;
+function glow(o, hex) {
+  if (o.material?.emissive) o.material.emissive.setHex(hex);
+  else o.traverse(c => c.material?.emissive?.setHex(hex));
+}
+function select(mesh) {
+  if (selected) glow(selected, 0);
+  selected = mesh;
+  document.querySelectorAll(".parts li").forEach(li => li.classList.toggle("sel", mesh?.userData.part?.id === li.dataset.id));
+  if (!mesh) { $("info").hidden = true; return; }
+  const p = mesh.userData.part;
+  if (p) {
+    glow(mesh, 0x5a2a0a);
+    const s = mesh.geometry?.boundingBox ? mesh.geometry.boundingBox.getSize(new THREE.Vector3()) : new THREE.Box3().setFromObject(mesh).getSize(new THREE.Vector3());
+    $("infoName").textContent = p.name;
+    $("infoSw").style.background = p.color;
+    $("infoDims").textContent = `${s.x.toFixed(1)} × ${s.y.toFixed(1)} × ${s.z.toFixed(1)} mm`;
+    $("infoText").textContent = p.text;
+  } else {
+    const u = mesh.userData.name ? mesh.userData : mesh.parent.userData;
+    $("infoName").textContent = u.name; $("infoSw").style.background = "transparent";
+    $("infoDims").textContent = u.dims + " mm"; $("infoText").textContent = u.text;
+  }
+  $("info").hidden = false;
+}
+$("infoClose").onclick = () => select(null);
+
+// ---------- picking: click selects, or places measure points ----------
+const ray = new THREE.Raycaster();
+let down = null, measuring = false, mPts = [], mObjs = [];
+canvas.addEventListener("pointerdown", e => down = [e.clientX, e.clientY]);
+canvas.addEventListener("pointerup", e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+  const r = canvas.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1), camera);
+  const targets = [...Object.values(meshes).filter(m => m.visible), ...(refs.visible ? refs.children : [])];
+  const hit = ray.intersectObjects(targets, true).find(h => h.object.isMesh);
+  if (measuring) { if (hit) addPoint(hit.point); return; }
+  select(hit ? (hit.object.userData.part || hit.object.userData.name ? hit.object : hit.object.parent) : null);
+});
+
+function clearMeasure() { for (const o of mObjs) scene.remove(o); mObjs = []; mPts = []; $("mlabel").hidden = true; }
+function addPoint(p) {
+  if (mPts.length === 2) clearMeasure();
+  mPts.push(p.clone());
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 12), new THREE.MeshBasicMaterial({color: 0xc2571a, depthTest: false}));
+  dot.position.copy(p); dot.renderOrder = 10; scene.add(dot); mObjs.push(dot);
+  if (mPts.length === 2) {
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(mPts), new THREE.LineBasicMaterial({color: 0xc2571a, depthTest: false}));
+    line.renderOrder = 10; scene.add(line); mObjs.push(line);
+    $("mlabel").textContent = `${mPts[0].distanceTo(mPts[1]).toFixed(1)} mm`;
+    $("mlabel").hidden = false;
+    $("hint").textContent = "לחץ שוב כדי להתחיל מדידה חדשה";
+  } else $("hint").textContent = "עכשיו לחץ על הנקודה השנייה";
+}
+$("measureBtn").onclick = () => {
+  measuring = !measuring;
+  $("measureBtn").setAttribute("aria-pressed", measuring);
+  $("hint").hidden = !measuring;
+  $("hint").textContent = "לחץ על נקודה ראשונה על אחד החלקים";
+  if (!measuring) clearMeasure();
+};
+
+// ---------- views ----------
+function frame(objs, dir) {
+  scene.updateMatrixWorld(true);
+  const b = new THREE.Box3();
+  for (const o of objs) b.expandByObject(o);
+  const c = b.getCenter(new THREE.Vector3()), r = b.getSize(new THREE.Vector3()).length() / 2;
+  const d = (dir || camera.position.clone().sub(controls.target)).clone().normalize();
+  controls.target.copy(c);
+  if (camera === persp) camera.position.copy(c).addScaledVector(d, r / Math.sin(persp.fov * Math.PI / 360) * 1.05);
+  else camera.position.copy(c).addScaledVector(d, 1000);
+  controls.update();
+}
+const DIRS = {iso: [0.9, 1.3, 0.6], front: [0, 1, 0.02], side: [1, 0, 0.02], top: [0, 0.0001, 1]};
+function setView(v) {
+  const vis = Object.values(meshes).filter(m => m.visible);
+  frame(vis.length ? vis : [meshes.box], new THREE.Vector3(...DIRS[v]));
+}
+document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => setView(b.dataset.view));
+
+// ---------- life size ----------
+const store = {get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+               set(k, v) { try { localStorage.setItem(k, v); } catch {} }};
+let pxPerMm = +store.get("pxPerMm") || 96 / 25.4;
+let lifeSize = false;
+function showCal() {
+  $("calRange").value = pxPerMm; drawCal(); $("cal").hidden = false;
+}
+function drawCal() {
+  const v = +$("calRange").value;
+  $("calCard").style.width = 85.6 * v + "px"; $("calCard").style.height = 54 * v + "px";
+  $("calOut").textContent = v.toFixed(2) + " px/mm";
+}
+$("calRange").oninput = drawCal;
+$("calBtn").onclick = showCal;
+$("calCancel").onclick = () => $("cal").hidden = true;
+$("calDone").onclick = () => { pxPerMm = +$("calRange").value; store.set("pxPerMm", pxPerMm); store.set("calibrated", "1"); $("cal").hidden = true; if (lifeSize) resize(); else setLife(true); };
+function setLife(on) {
+  lifeSize = on;
+  $("lifeBtn").setAttribute("aria-pressed", on);
+  const pos = camera.position.clone(), tgt = controls.target.clone();
+  camera = on ? ortho : persp;
+  camera.position.copy(pos);
+  controls.object = camera;
+  controls.enableZoom = !on;   // zoom would break the 1:1 scale
+  controls.target.copy(tgt);
+  resize();
+  if (on) setView("side");
+}
+$("lifeBtn").onclick = () => {
+  if (!lifeSize && !store.get("calibrated")) { showCal(); return; }
+  setLife(!lifeSize);
+};
+
+// ---------- render loop ----------
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  persp.aspect = w / h; persp.updateProjectionMatrix();
+  const hw = w / 2 / pxPerMm, hh = h / 2 / pxPerMm;
+  Object.assign(ortho, {left: -hw, right: hw, top: hh, bottom: -hh});
+  ortho.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+resize();
+applyMotion();
+setView("iso");
+// Clean picture mode for the README: camera_3d.html#shot&dir=0.9,1.3,0.6&explode=60&glass=1&lid=1&tilt=25&pan=0&zoom=1.2
+// hides the panels, the reference objects, the grid and the walls.
+if (location.hash.startsWith("#shot")) {
+  const q = new URLSearchParams(location.hash.slice(1));
+  document.documentElement.dataset.theme = q.get("theme") || "light";
+  document.querySelector(".rail").hidden = true;
+  document.querySelector(".app").style.gridTemplateColumns = "1fr";
+  document.querySelectorAll(".ov").forEach(o => o.hidden = true);
+  refs.visible = gridGroup.visible = walls.visible = false;
+  for (const k of ["tilt", "pan", "explode"]) if (q.has(k)) $(k).value = q.get(k);
+  $("lidGlass").checked = q.get("lid") === "1"; $("lidGlass").onchange();
+  $("towerGlass").checked = q.get("glass") === "1"; $("towerGlass").onchange();
+  if (q.has("hide")) for (const id of q.get("hide").split(",")) meshes[id].visible = false;
+  applyMotion(); resize();
+  DIRS.shot = (q.get("dir") || "0.9,1.3,0.6").split(",").map(Number);
+  setView("shot");
+  const z = +(q.get("zoom") || 1);
+  camera.position.sub(controls.target).multiplyScalar(1 / z).add(controls.target);
+  controls.update();
+}
+const tmp = new THREE.Vector3();
+renderer.setAnimationLoop(() => {
+  controls.update();
+  renderer.render(scene, camera);
+  if (mPts.length === 2) {
+    tmp.copy(mPts[0]).add(mPts[1]).multiplyScalar(0.5).project(camera);
+    $("mlabel").style.left = (tmp.x + 1) / 2 * stage.clientWidth + "px";
+    $("mlabel").style.top = (1 - tmp.y) / 2 * stage.clientHeight + "px";
+  }
+});
+</script>

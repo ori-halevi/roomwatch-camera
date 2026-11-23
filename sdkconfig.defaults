@@ -1,0 +1,57 @@
+# Automatic light sleep between Wi-Fi beacons - the reason this build exists.
+CONFIG_PM_ENABLE=y
+CONFIG_FREERTOS_USE_TICKLESS_IDLE=y
+CONFIG_FREERTOS_HZ=1000
+
+# Console over the USB port. USB can't work in light sleep, and letting the chip
+# sleep with USB plugged in leaves Wi-Fi half-working - so while USB is connected,
+# light sleep is held off. On battery (no USB) the chip sleeps normally.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_USJ_NO_AUTO_LS_ON_CONNECTION=y
+
+# XIAO ESP32S3: 8MB flash, 8MB octal PSRAM.
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+
+# Recommended alongside light sleep by Espressif's wifi/power_save example:
+# keep the sleep/wake and Wi-Fi sleep paths in IRAM.
+CONFIG_PM_SLP_IRAM_OPT=y
+CONFIG_PM_RTOS_IDLE_OPT=y
+CONFIG_ESP_WIFI_SLP_IRAM_OPT=y
+
+# Lower sleep current. Both were off while chasing the USB-plugged-in "hang" (see
+# HANDOFF.md); back on now that the cause is known.
+CONFIG_PM_POWER_DOWN_CPU_IN_LIGHT_SLEEP=y
+CONFIG_PM_SLP_SPIRAM_HALFSLEEP_ENABLED=y
+
+# The XIAO has no 32kHz crystal; the 17.5MHz/256 source is steadier than the default
+# 136kHz RC for timing beacon wake-ups. Also added during the USB chase - not proven
+# necessary, but harmless.
+CONFIG_RTC_CLK_SRC_INT_8MD256=y
+
+# Per-power-mode time accounting, served at /stats (share of time in light sleep).
+CONFIG_PM_PROFILING=y
+
+# Shorten how long the radio stays up after each beacon wake-up (defaults 50ms / 15ms),
+# and drop back to sleep quickly when a beacon is missed.
+CONFIG_ESP_WIFI_SLP_DEFAULT_MIN_ACTIVE_TIME=20
+CONFIG_ESP_WIFI_SLP_DEFAULT_WAIT_BROADCAST_DATA_TIME=10
+CONFIG_ESP_WIFI_SLP_BEACON_LOST_OPT=y
+
+# One core: the second core spent ~8% of the time awake in every Wi-Fi setting
+# tried, and nothing here needs it (the sensor does the JPEG encoding).
+CONFIG_FREERTOS_UNICORE=y
+
+# Per-task CPU time, served at /tasks.
+CONFIG_FREERTOS_USE_TRACE_FACILITY=y
+CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
+CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS=y
+
+# A firmware pushed over Wi-Fi that never reaches the network is rolled back on reset.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
