@@ -138,6 +138,10 @@ archive/         first firmware (Arduino), kept for reference
 docs/            DEVELOPMENT.md (measurements, bugs, lessons) and images
 ```
 
+## License
+
+[GPL-3.0](LICENSE)
+
 <br/>
 
 <a name="-עברית"></a>
