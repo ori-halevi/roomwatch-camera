@@ -113,6 +113,13 @@ Light sleep switches GPIOs to their sleep configuration, so a short LED flash wa
 
 The router de-authenticates the camera (reason 7) exactly 62/92/122 minutes after each association: a per-station timer, most likely the WPA group/pairwise rekey being missed during power save. It reconnects in seconds and costs about 3 mAh/day. The clean fix is on the router (rekey interval 86400 s or off), not in firmware.
 
+### Smaller findings
+
+- The first frames after `esp_camera_init()` come out green-tinted. The firmware discards 5 warm-up frames.
+- Heat: in open air the ESP32-S3 went from 33 to ~61 °C in a 3-minute stream, ~63 °C after back-to-back streams. `/api/status` reports the built-in temperature sensor (current and peak), and the stream stops itself at 75 °C.
+- Orientation (rotate/mirror, EXIF values 1–8) is stored on the device and written into `/capture` JPEGs as EXIF, so snapshots sent elsewhere (e.g. Telegram) come out upright too.
+- The XIAO Sense's microphone can sits under the plug of long-flex camera modules. With the 75 mm OV2640 module the plug can't seat flat until the can's lid is removed.
+
 ## Charging and the battery gauge
 
 - These TP4056 USB-C clones have **no CC resistors**, so USB-C PD chargers and C-to-C cables don't power them. A plain 5 V USB-A charger with an A-to-C cable works.
